@@ -47,7 +47,7 @@ func(us *UserUsecase) UpdateProfile(user *models.User) (*models.User, *errors.Er
 		return nil, errors.NotFoundBody("Can't find user with nickname " + user.Nickname + "\n")
 	}
 	if err != nil {
-		return nil, errors.ConflictErrorBody("Can't find user with nickname " + user.Nickname + "\n")
+		return nil, errors.ConflictErrorBody("This email is already registered by user: " + err.Error()+ "\n")
 	}
 	return res, nil
 }

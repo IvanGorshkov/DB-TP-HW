@@ -36,8 +36,8 @@ func (uh *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err2.ErrorCode == errors.NotFoundError {
-			w.WriteHeader(err2.HttpError)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
@@ -47,8 +47,8 @@ func (uh *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(usr)
 	if err != nil {
 		fmt.Println(err)
@@ -73,8 +73,8 @@ func (uh *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err2.ErrorCode == errors.NotFoundError ||  err2.ErrorCode == errors.ConflictError {
-			w.WriteHeader(err2.HttpError)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
@@ -84,8 +84,8 @@ func (uh *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(usr)
 	if err != nil {
 		fmt.Println(err)
@@ -109,8 +109,8 @@ func (uh *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err2.ErrorCode == errors.ConflictError {
-			w.WriteHeader(err2.HttpError)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
 			err = json.NewEncoder(w).Encode(usr)
 			if err != nil {
 				fmt.Println(err)
@@ -120,11 +120,13 @@ func (uh *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(usr[0])
+	w.WriteHeader(http.StatusCreated)
+	jData, err := json.Marshal(usr[0])
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	w.Write(jData)
 }

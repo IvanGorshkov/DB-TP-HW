@@ -30,15 +30,14 @@ func (fh *ForumHandler) Configure(r *mux.Router) {
 func (fh *ForumHandler) detailsForum(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	res, err2 := fh.forumUsecase.Detail(vars["slug"])
-	fmt.Println(res)
 	if  err2 != nil {
 		if  err2.ErrorCode == errors.InternalError {
 			return
 		}
 
 		if err2.ErrorCode == errors.NotFoundError {
-			w.WriteHeader(err2.HttpError)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
@@ -48,8 +47,8 @@ func (fh *ForumHandler) detailsForum(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
 		fmt.Println(err)
@@ -72,8 +71,8 @@ func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err2.ErrorCode == errors.ConflictError {
-			w.WriteHeader(err2.HttpError)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
 			err = json.NewEncoder(w).Encode(res)
 			if err != nil {
 				fmt.Println(err)
@@ -83,8 +82,8 @@ func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err2.ErrorCode == errors.NotFoundError {
-			w.WriteHeader(err2.HttpError)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
@@ -94,8 +93,8 @@ func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		fmt.Println(err)

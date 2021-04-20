@@ -27,7 +27,7 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
 	select case when EXISTS (
 		select 1 
 		from users
-		where nickname = $1
+		where LOWER(nickname) = LOWER($1)
 		) then TRUE else FALSE end`, forum.User).Scan(&isFind)
 	if err != nil {
 		return nil, err
@@ -37,11 +37,31 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
 		return nil, errors.New("404")
 	}
 	
+	queryForum, err := fr.dbConn.Query(`SELECT title, nickname, slug, post, threads from forum where LOWER(slug) = LOWER($1)`,forum.Slug)
+	if err != nil {
+		return nil, err
+	}
+
+	defer queryForum.Close()
+
+	for queryForum.Next() {
+		var forum_409 models.Forum 
+		err = queryForum.Scan(&forum_409.Title, &forum_409.User, &forum_409.Slug, &forum_409.Posts, &forum_409.Threads)
+		if err != nil {
+			return nil, err
+		}
+		return &forum_409, errors.New("409")
+	}
+	
+	var user string;
+	err = fr.dbConn.QueryRow(`SELECT nickname from users where LOWER(nickname) = LOWER($1)`,forum.User).Scan(&user)
+	forum.User = user
+	fmt.Println(err, user)
 	tx, err := fr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
 	if err != nil {
 		return nil, err
 	}
-	
+
 	query := tx.QueryRow(`
 		INSERT INTO forum (title, nickname, slug) VALUES ($1, $2, $3) returning id
 	`, forum.Title, forum.User, forum.Slug)
@@ -53,12 +73,6 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
 		if rollbackErr != nil {
 			return nil, rollbackErr
 		}
-		
-		err := fr.dbConn.QueryRow(`SELECT title, nickname, slug, post, threads from forum where slug = $1`, forum.Slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
-		if err != nil {
-			return nil, err
-		}
-		return forum, errors.New("409")
 	}
 
 	err = tx.Commit()
@@ -70,7 +84,7 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
 
 func (fr *ForumRepository) Detail(slug string) (*models.Forum, error) {
 	var forum models.Forum
-	err := fr.dbConn.QueryRow(`SELECT title, nickname, slug, post, threads from forum where slug = $1`, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+	err := fr.dbConn.QueryRow(`SELECT title, nickname, slug, post, threads from forum where LOWER(slug) = LOWER($1)`, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
 	fmt.Println(err)
 	if err != nil {
 		if err == sql.ErrNoRows {
