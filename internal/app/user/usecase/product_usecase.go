@@ -16,7 +16,7 @@ func NewProductUsecase(repo user.UserRepository) user.UserUsecase {
 }
 
 func(us *UserUsecase) Create(user *models.User) (*models.User, error) {
-	return nil, nil
+	return us.userRepo.Create(user)
 }
 
 func(us *UserUsecase) GetProfile(nickname string) (*models.User, error) {

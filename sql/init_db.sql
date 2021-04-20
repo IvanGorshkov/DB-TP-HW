@@ -1,5 +1,4 @@
-
-GRANT ALL PRIVILEGES ON database formDB TO postgres;
+GRANT ALL PRIVILEGES ON database formdb TO postgres;
 
 create table if not exists users
 (
