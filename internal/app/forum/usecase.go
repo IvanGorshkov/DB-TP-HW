@@ -8,4 +8,6 @@ import (
 type ForumUsecase interface {
 	Create(forum *models.Forum) (*models.Forum, *errors.Error)
 	Detail(slug string) (*models.Forum, *errors.Error)
+	CreateThread(thread *models.Thread) (*models.Thread, *errors.Error)
+	GetThreadsByParams(forumSlug, since, desc string, limit int) ([]*models.Thread, *errors.Error)
 }

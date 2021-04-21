@@ -25,7 +25,9 @@ require (
 	github.com/tinylib/msgp v1.1.5 // indirect
 	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc // indirect
 	golang.org/x/net v0.0.0-20210420072503-d25e30425868 // indirect
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210420072515-93ed5bcd2bfe // indirect
 	golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72 // indirect
 	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/tools v0.0.0-20201022035929-9cf592e881e9
 )

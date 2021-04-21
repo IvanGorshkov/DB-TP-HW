@@ -19,6 +19,35 @@ func NewUserUsecase(repo forum.ForumRepository) forum.ForumUsecase {
 }
 
 
+func(fu *FourmUsecase) GetThreadsByParams(forumSlug, since, desc string, limit int) ([]*models.Thread, *errors.Error) {
+	_, err := fu.forumRepo.Detail(forumSlug)
+	if err != nil {
+		return nil, errors.NotFoundBody("Can't find user with nickname " + forumSlug + "\n")
+	}
+
+	res, err := fu.forumRepo.GetThreadsByParams(forumSlug, since, desc, limit) 
+	if err != nil {
+		return nil, errors.UnexpectedInternal(err)
+	}
+
+	return res, nil
+}
+
+func(fu *FourmUsecase) CreateThread(thread *models.Thread) (*models.Thread, *errors.Error) {
+	res, err := fu.forumRepo.ThreadCreate(thread) 
+	if err != nil {
+		if err.Error() == "409" {
+			return res, errors.CustomErrors[errors.ConflictError]
+		}
+		if err.Error() == "404" {
+			return res, errors.NotFoundBody("Can't find user with nickname " + thread.Author + "\n")
+		}
+		return nil, errors.UnexpectedInternal(err)
+	}
+
+	return res, nil
+}
+
 func (fu *FourmUsecase) Create(forum *models.Forum) (*models.Forum, *errors.Error) {
 	res, err := fu.forumRepo.Create(forum) 
 	if err != nil {

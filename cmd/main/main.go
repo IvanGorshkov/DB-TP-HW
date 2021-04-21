@@ -15,6 +15,10 @@ import(
 	forumHandler "github.com/IvanGorshkov/DB-TP-HW/internal/app/forum/delivery/http"
 	forumRepo "github.com/IvanGorshkov/DB-TP-HW/internal/app/forum/repository/postgres"
 	forumUsecase "github.com/IvanGorshkov/DB-TP-HW/internal/app/forum/usecase"
+
+	threadHandler "github.com/IvanGorshkov/DB-TP-HW/internal/app/threads/delivery/http"
+	threadRepo "github.com/IvanGorshkov/DB-TP-HW/internal/app/threads/repository/postgres"
+	threadUsecase "github.com/IvanGorshkov/DB-TP-HW/internal/app/threads/usecase"
 )
 
 
@@ -37,10 +41,17 @@ func main() {
 	forumUsecase := forumUsecase.NewUserUsecase(forumRepo)
 	forumHandler := forumHandler.NewForumHandler(forumUsecase)
 
+
+	threadRepo := threadRepo.NewThreadsRepository(postgresDB.GetDatabase())
+	threadUsecase := threadUsecase.NewThreadsUsecase(threadRepo)
+	threadHandler := threadHandler.NewThreadsHandler(threadUsecase)
+
+
 	api := router.PathPrefix("/api/").Subrouter()
 
 	userHandler.Configure(api)
 	forumHandler.Configure(api)
+	threadHandler.Configure(api)
 
 	server := http.Server{
 		Addr:         fmt.Sprint(":5000"),
