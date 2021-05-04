@@ -10,4 +10,5 @@ type ForumUsecase interface {
 	Detail(slug string) (*models.Forum, *errors.Error)
 	CreateThread(thread *models.Thread) (*models.Thread, *errors.Error)
 	GetThreadsByParams(forumSlug, since, desc string, limit int) ([]*models.Thread, *errors.Error)
+	GetUserByParams(forumSlug, since, desc string, limit int) ([]*models.User, *errors.Error)
 }

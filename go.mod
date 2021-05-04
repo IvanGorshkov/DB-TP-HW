@@ -14,6 +14,8 @@ require (
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-openapi/validate v0.20.2 // indirect
 	github.com/gorilla/mux v1.8.0
+	github.com/jackc/pgconn v1.8.1
+	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/lib/pq v1.10.0
 	github.com/mailcourses/technopark-dbms-forum v0.2.2 // indirect

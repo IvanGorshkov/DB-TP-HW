@@ -10,3 +10,10 @@ type Thread struct {
 	Created	string `json:"created"`
 	Slug	string `json:"slug"`
 }
+
+
+type Vote struct {
+	Nickname	string `json:"nickname"`
+	Votes		int  `json:"voice"`
+	Thread 		int  `json:"id"`
+}

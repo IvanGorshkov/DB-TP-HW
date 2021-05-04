@@ -19,6 +19,14 @@ import(
 	threadHandler "github.com/IvanGorshkov/DB-TP-HW/internal/app/threads/delivery/http"
 	threadRepo "github.com/IvanGorshkov/DB-TP-HW/internal/app/threads/repository/postgres"
 	threadUsecase "github.com/IvanGorshkov/DB-TP-HW/internal/app/threads/usecase"
+
+	postHandler "github.com/IvanGorshkov/DB-TP-HW/internal/app/post/delivery/http"
+	postRepo "github.com/IvanGorshkov/DB-TP-HW/internal/app/post/repository/postgres"
+	postUsecase "github.com/IvanGorshkov/DB-TP-HW/internal/app/post/usecase"
+
+	serviceHandler "github.com/IvanGorshkov/DB-TP-HW/internal/app/service/delivery/http"
+	serviceRepo "github.com/IvanGorshkov/DB-TP-HW/internal/app/service/repository/postgres"
+	serviceUsecase "github.com/IvanGorshkov/DB-TP-HW/internal/app/service/usecase"
 )
 
 
@@ -45,14 +53,24 @@ func main() {
 	threadRepo := threadRepo.NewThreadsRepository(postgresDB.GetDatabase())
 	threadUsecase := threadUsecase.NewThreadsUsecase(threadRepo)
 	threadHandler := threadHandler.NewThreadsHandler(threadUsecase)
+	
+	postRepo := postRepo.NewPostRepository(postgresDB.GetDatabase())
+	postUsecase := postUsecase.NewThreadsUsecase(postRepo, userRepo, forumRepo, threadRepo)
+	postHandler := postHandler.NewThreadsHandler(postUsecase)
 
+
+	serviceRepo := serviceRepo.NewServiceRepository(postgresDB.GetDatabase())
+	serviceUsecase := serviceUsecase.NewUserUsecase(serviceRepo)
+	serviceHandler := serviceHandler.NewServiceHandler(serviceUsecase)
 
 	api := router.PathPrefix("/api/").Subrouter()
 
 	userHandler.Configure(api)
 	forumHandler.Configure(api)
 	threadHandler.Configure(api)
-
+	postHandler.Configure(api)
+	serviceHandler.Configure(api)
+	
 	server := http.Server{
 		Addr:         fmt.Sprint(":5000"),
 		Handler:      router,

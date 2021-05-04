@@ -19,6 +19,22 @@ func NewUserUsecase(repo forum.ForumRepository) forum.ForumUsecase {
 }
 
 
+func(fu *FourmUsecase) GetUserByParams(forumSlug, since, desc string, limit int) ([]*models.User, *errors.Error) {
+	_, err := fu.forumRepo.Detail(forumSlug)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.NotFoundBody("Can't find form with slug " + forumSlug + "\n")
+		}
+		return nil, errors.UnexpectedInternal(err)
+	}
+	res, err2 := fu.forumRepo.GetUserByParams(forumSlug, since, desc, limit)
+	if err2 != nil {
+		return nil, errors.UnexpectedInternal(err2)
+	}
+
+	return res, nil
+}
+
 func(fu *FourmUsecase) GetThreadsByParams(forumSlug, since, desc string, limit int) ([]*models.Thread, *errors.Error) {
 	_, err := fu.forumRepo.Detail(forumSlug)
 	if err != nil {

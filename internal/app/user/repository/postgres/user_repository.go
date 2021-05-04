@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/user"
@@ -54,7 +53,6 @@ func(ur *UserRepository) Create(user *models.User) ([]*models.User, error) {
 
 	id := 0
 	err = query.Scan(&id)
-	fmt.Println(err)
 	if err != nil {
 		rollbackErr := tx.Rollback()
 		if rollbackErr != nil {

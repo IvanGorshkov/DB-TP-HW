@@ -27,6 +27,52 @@ func (fh *ForumHandler) Configure(r *mux.Router) {
 	r.HandleFunc("/forum/{slug}/details", fh.detailsForum).Methods(http.MethodGet)
 	r.HandleFunc("/forum/{slug}/create", fh.CreateThread).Methods(http.MethodPost)
 	r.HandleFunc("/forum/{slug}/threads", fh.GetThreads).Methods(http.MethodGet)   
+	r.HandleFunc("/forum/{slug}/users", fh.GetUsers).Methods(http.MethodGet)   
+}
+
+func (fh *ForumHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	limit, err := strconv.Atoi(string(r.FormValue("limit")))
+	if err != nil {
+		fmt.Println(err)
+	}
+	since := string(r.FormValue("since"))
+	if err != nil {
+		fmt.Println(err)
+	}
+	desc := string(r.FormValue("desc"))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	res, err2 := fh.forumUsecase.GetUserByParams(vars["slug"], since, desc, limit)
+
+	if  err2 != nil {
+		if  err2.ErrorCode == errors.InternalError {
+			return
+		}
+
+		if err2.ErrorCode == errors.NotFoundError {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
+			messagee := errors.Message{ Message: err2.Message}
+			err := json.NewEncoder(w).Encode(messagee)
+			if err != nil {
+				fmt.Println(err)
+			}
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 }
 
 func (fh *ForumHandler) GetThreads(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +91,6 @@ func (fh *ForumHandler) GetThreads(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 	}
 
-	fmt.Println(vars["slug"], since, desc, limit)
 	res, err2 := fh.forumUsecase.GetThreadsByParams(vars["slug"], since, desc, limit)
 
 	if  err2 != nil {
