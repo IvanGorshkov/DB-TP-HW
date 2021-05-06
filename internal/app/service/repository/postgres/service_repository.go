@@ -18,7 +18,7 @@ func NewServiceRepository(conn *sql.DB) service.ServiceRepository {
 }
 
  
-func(sr *ServiceRepository) getStatus() (*models.Status, error) {
+func(sr *ServiceRepository) GetStatus() (*models.Status, error) {
 	var status models.Status
 	err := sr.dbConn.QueryRow(
 		`SELECT * FROM 
