@@ -2,11 +2,12 @@ package usecase
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
-	"github.com/jackc/pgx" 
+	"github.com/jackc/pgx"
 )
 
 type FourmUsecase struct {
@@ -53,6 +54,15 @@ func(fu *FourmUsecase) GetThreadsByParams(forumSlug, since, desc string, limit i
 func(fu *FourmUsecase) CreateThread(thread *models.Thread) (*models.Thread, *errors.Error) {
 	res, err := fu.forumRepo.ThreadCreate(thread) 
 	if err != nil {
+		fmt.Println(err)
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23503" {
+			return res, errors.NotFoundBody("Can't find user with nickname " + thread.Author + "\n")
+		}
+
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23502" {
+			return res, errors.NotFoundBody("Can't find thread forum by slug " + thread.Forum + "\n")
+		}
+
 		if err.Error() == "409" {
 			return res, errors.CustomErrors[errors.ConflictError]
 		}
@@ -68,8 +78,6 @@ func(fu *FourmUsecase) CreateThread(thread *models.Thread) (*models.Thread, *err
 func (fu *FourmUsecase) Create(forum *models.Forum) (*models.Forum, *errors.Error) {
 	res, err := fu.forumRepo.Create(forum) 
 	if err != nil {
-		if err.(pgx.PgError).Code == "23503" {
-		}
 		if err.Error() == "409" {
 			return res, errors.CustomErrors[errors.ConflictError]
 		}

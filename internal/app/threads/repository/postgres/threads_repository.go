@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -225,19 +226,12 @@ func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, e
 
 	for _, post := range posts {
 		parent_thread := 0
-		nickname := ""
 		if post.Parent != 0 {
 			tr.dbConn.QueryRow(`SELECT thread from posts where id = $1`, post.Parent).Scan(&parent_thread)
 			if parent_thread != post.Thread {
 				return nil, errors.New("409")
 			}
 		}
-
-		tr.dbConn.QueryRow(`SELECT nickname from users where nickname = $1`, post.Author).Scan(&nickname)
-		if nickname == "" {
-			return nil, errors.New("404")
-		}
-		nickname = ""
 	}
 
 	query := `INSERT INTO posts (parent, author, message, forum, thread)
@@ -250,11 +244,21 @@ func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, e
 			post.Message, post.Forum, post.Thread)
 	}
 	query += " returning id, parent, author, message, is_edited, forum, thread, created"
-	res, err := tr.dbConn.Query(query)
-	
+
+    tx, err := tr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
 	if err != nil {
-		return nil, err
-	}
+        return nil, err
+    }
+
+	res, err2 := tx.Query(query)
+	if err2 != nil {
+        rollbackErr := tx.Rollback()
+        if rollbackErr != nil {
+            return nil, rollbackErr
+        }
+        return nil, err2
+    }
+
 	newPosts := make([]*models.Post, 0)
 	var parent sql.NullInt64
 	defer res.Close()
@@ -262,9 +266,7 @@ func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, e
 		post := &models.Post{}
 		err = res.Scan(&post.ID, &parent, &post.Author, &post.Message,
 			&post.IsEdited, &post.Forum, &post.Thread, &post.Created)
-		if err != nil {
-			fmt.Println(err)
-		}
+	
 		if parent.Valid {
 			post.Parent = int(parent.Int64)
 		}
@@ -273,6 +275,11 @@ func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, e
 		}
 		newPosts = append(newPosts, post)
 	}
+
+    err = tx.Commit()
+    if err != nil {
+        return nil, errors.New("404")
+    }
 
 	return newPosts, nil
 }

@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"database/sql"
-	"fmt"
 	"strconv"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
@@ -137,7 +136,6 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 		}
 	}
 	vote.Thread = int(thread.Id)
-	
 	err = tu.threadsRepo.Vote(vote)
 	if err != nil {
 		if err.(pgx.PgError).Code == "23503" {
@@ -146,11 +144,16 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 		if err.(pgx.PgError).Code == "23505" {
 			err = tu.threadsRepo.UpdateVote(vote)
 			if err != nil {
-				if vote.Votes < 0 {
-					thread.Votes += 2 * int32(vote.Votes);
-				} else {
-					thread.Votes += int32(vote.Votes);
+				thread2, err2 := tu.threadsRepo.ThreadById(vote.Thread)
+				if err2 != nil {
+					return nil, errors.UnexpectedInternal(err2)
 				}
+				return thread2, nil
+				// if vote.Votes < 0 {
+					// 	thread.Votes += 2 * int32(vote.Votes);
+				// } else {
+					// 	thread.Votes += int32(vote.Votes);
+				// }
 			} 
 
 			return thread, nil
@@ -195,15 +198,18 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 	}
 
 	posts, err = tu.threadsRepo.CreatePost(posts)
-	fmt.Println(err)
 	if err != nil {
 		if err.Error() == "409" {
 			return nil , errors.ConflictErrorBody("Parent post was created in another thread")
 		}
 
+
 		if err.Error() == "404" {
-			return nil, errors.NotFoundBody(`Can't find post author by nickname: \n`)
+			return nil, errors.NotFoundBody("Can't find user with nickname " + thread.Author + "\n")
 		}
+		
+
+
 	}
 	return posts, nil
 }
