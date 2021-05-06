@@ -17,6 +17,11 @@ func NewServiceRepository(conn *sql.DB) service.ServiceRepository {
 	}
 }
 
+
+func(sr *ServiceRepository) Clear() (error) {
+	_, err := sr.dbConn.Exec(`TRUNCATE users, thread, forum, posts, votes, users_forum;`)
+	return err
+}
  
 func(sr *ServiceRepository) GetStatus() (*models.Status, error) {
 	var status models.Status
