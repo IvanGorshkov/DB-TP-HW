@@ -102,6 +102,10 @@ func(ur *UserRepository) UpdateProfile(user *models.User) (*models.User, error) 
 	).Scan(&findUser.Nickname)
 
 	if findUser.Nickname != "" {
+		rollbackErr := tx.Rollback()
+		if rollbackErr != nil {
+			return nil, rollbackErr
+		}
 		return nil, errors.New(findUser.Nickname)
 	}
 
