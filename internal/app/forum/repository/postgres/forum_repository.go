@@ -172,6 +172,7 @@ func(fr *ForumRepository) ThreadCreate(thread *models.Thread) (*models.Thread, e
         if rollbackErr != nil {
             return nil, rollbackErr
         }
+        return nil, err
     }
 
     err = tx.Commit()
@@ -232,6 +233,7 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
         if rollbackErr != nil {
             return nil, rollbackErr
         }
+        return nil, err
     }
 
     err = tx.Commit()

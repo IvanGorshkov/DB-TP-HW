@@ -168,7 +168,6 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 	var thread = &models.Thread{}
 	if err != nil {
 		thread, err = tu.threadsRepo.ThreadBySlug(slug)
-		fmt.Println(err, ' ', thread)
 		if err != nil {
 			if err == sql.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
@@ -177,7 +176,6 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 		}
 	} else {
 		thread, err = tu.threadsRepo.ThreadById(threadID)
-		fmt.Println(err, ' ', thread)
 		if err != nil {
 			if err == sql.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find post thread by id: " + slug + "\n" )

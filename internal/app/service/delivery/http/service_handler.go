@@ -20,8 +20,9 @@ func NewServiceHandler(serviceUsecase service.ServiceUsecase) *ServiceHandler {
 }
 
 
-func (sh *ServiceHandler) Configure(r *mux.Router) {
+func (sh *ServiceHandler) Configure(r *mux.Router) { 
 	r.HandleFunc("/service/status", sh.getStatus).Methods(http.MethodGet)
+	r.HandleFunc("/service/clear", sh.clear).Methods(http.MethodPost)
 }
 
 func (sh *ServiceHandler) getStatus(w http.ResponseWriter, r *http.Request) {
