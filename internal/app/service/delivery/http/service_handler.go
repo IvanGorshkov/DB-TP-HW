@@ -39,3 +39,15 @@ func (sh *ServiceHandler) getStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+
+func (sh *ServiceHandler) clear(w http.ResponseWriter, r *http.Request) {
+	err := sh.serviceUsecase.Clear()
+
+   if err != nil {
+	   return
+   }
+   w.Header().Set("Content-Type", "application/json")
+   w.WriteHeader(http.StatusOK)
+}
+

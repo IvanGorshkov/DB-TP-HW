@@ -8,4 +8,5 @@ import (
 
 type ServiceUsecase interface {
 	GetStatus() (*models.Status, *errors.Error)
+	Clear() (*errors.Error)
 }
