@@ -25,7 +25,7 @@ func NewThreadsUsecase(repo threads.ThreadsRepository) threads.ThreadsUsecase {
 func (tu *ThreadsUsecase) Update(thread *models.Thread, slug string) (*models.Thread, *errors.Error) {
 	threadID, err := strconv.Atoi(slug)
 	if err != nil {
-		thread, err = tu.threadsRepo.UpdateBySlug(thread,slug)
+		_, err = tu.threadsRepo.ThreadBySlug(slug)
 
 		if err != nil {
 				if err == sql.ErrNoRows  {
@@ -33,13 +33,25 @@ func (tu *ThreadsUsecase) Update(thread *models.Thread, slug string) (*models.Th
 				}
 			return nil, errors.UnexpectedInternal(err)
 		}
+
+		thread, err = tu.threadsRepo.UpdateBySlug(thread,slug)
+		if err != nil {
+			return nil, errors.UnexpectedInternal(err)
+		}
+
 	} else {
-		thread, err = tu.threadsRepo.UpdateById(thread, threadID)
+		_, err = tu.threadsRepo.ThreadById(threadID)
 
 		if err != nil {
-			if err == sql.ErrNoRows  {
-				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
-			}
+				if err == sql.ErrNoRows  {
+					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
+				}
+			return nil, errors.UnexpectedInternal(err)
+		}
+
+
+		thread, err = tu.threadsRepo.UpdateById(thread, threadID)
+		if err != nil {
 			return nil, errors.UnexpectedInternal(err)
 		}
 	}
