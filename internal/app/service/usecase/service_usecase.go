@@ -17,6 +17,14 @@ func NewUserUsecase(repo service.ServiceRepository) service.ServiceUsecase {
 }
 
 
+func (su *ServiceUsecase) Clear() (*errors.Error) {
+	err := su.serviceRepo.Clear()
+	if err != nil {
+		return errors.UnexpectedInternal(err)
+	}
+	return nil
+}
+
 func (su *ServiceUsecase) GetStatus() (*models.Status, *errors.Error) {
 
 	res, err := su.serviceRepo.GetStatus()
