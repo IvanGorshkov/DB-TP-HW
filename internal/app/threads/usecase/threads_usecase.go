@@ -2,12 +2,13 @@ package usecase
 
 import (
 	"database/sql"
+	"fmt"
 	"strconv"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/threads"
-	"github.com/jackc/pgx" 
+	"github.com/jackc/pgx"
 )
 
 type ThreadsUsecase struct {
@@ -199,15 +200,14 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 
 	posts, err = tu.threadsRepo.CreatePost(posts)
 	if err != nil {
-		if err.Error() == "409" {
+		fmt.Println(err)
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "00409" {
 			return nil , errors.ConflictErrorBody("Parent post was created in another thread")
 		}
 
-
-		if err.Error() == "404" {
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23503" {
 			return nil, errors.NotFoundBody("Can't find user with nickname " + thread.Author + "\n")
 		}
-		
 
 
 	}

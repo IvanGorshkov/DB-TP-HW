@@ -224,16 +224,6 @@ func (tr *ThreadsRepository) ThreadBySlug(slug string) (*models.Thread, error) {
 
 func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, error) {
 
-	for _, post := range posts {
-		parent_thread := 0
-		if post.Parent != 0 {
-			tr.dbConn.QueryRow(`SELECT thread from posts where id = $1`, post.Parent).Scan(&parent_thread)
-			if parent_thread != post.Thread {
-				return nil, errors.New("409")
-			}
-		}
-	}
-
 	query := `INSERT INTO posts (parent, author, message, forum, thread)
 			VALUES `
 	for i, post := range posts {
@@ -276,9 +266,13 @@ func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, e
 		newPosts = append(newPosts, post)
 	}
 
+	if res.Err() != nil {
+		return nil, res.Err()
+	}
+
     err = tx.Commit()
     if err != nil {
-        return nil, errors.New("404")
+        return nil, err
     }
 
 	return newPosts, nil
