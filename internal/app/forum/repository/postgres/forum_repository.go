@@ -116,20 +116,6 @@ func(fr *ForumRepository) GetThreadsByParams(forumSlug, since, desc string, limi
 }
 
 func(fr *ForumRepository) ThreadCreate(thread *models.Thread) (*models.Thread, error) {
-    var isFind = false
-    err := fr.dbConn.QueryRow(`
-    select case when EXISTS (
-        select 1 
-        from users
-        where LOWER(nickname) = LOWER($1)
-        ) then TRUE else FALSE end`, thread.Author).Scan(&isFind)
-    if err != nil {
-        return nil, err
-    }
-
-    if isFind == false {
-        return nil, errors.New("404")
-    }
     
     var thread_409 = &models.Thread{}
 

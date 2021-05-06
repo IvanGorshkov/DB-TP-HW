@@ -8,7 +8,7 @@ import (
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/threads"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx" 
 )
 
 type ThreadsUsecase struct {

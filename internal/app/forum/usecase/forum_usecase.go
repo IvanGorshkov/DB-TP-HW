@@ -6,6 +6,7 @@ import (
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
+	"github.com/jackc/pgx" 
 )
 
 type FourmUsecase struct {
@@ -67,6 +68,8 @@ func(fu *FourmUsecase) CreateThread(thread *models.Thread) (*models.Thread, *err
 func (fu *FourmUsecase) Create(forum *models.Forum) (*models.Forum, *errors.Error) {
 	res, err := fu.forumRepo.Create(forum) 
 	if err != nil {
+		if err.(pgx.PgError).Code == "23503" {
+		}
 		if err.Error() == "409" {
 			return res, errors.CustomErrors[errors.ConflictError]
 		}
