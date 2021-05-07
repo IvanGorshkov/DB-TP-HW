@@ -1,6 +1,9 @@
 package usecase
 
 import (
+	"database/sql"
+	"strconv"
+
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
@@ -42,6 +45,10 @@ func (pu *PostUsecase) Detail(id int, related []string) (*models.PostFull, *erro
 	var postFull models.PostFull
 	post, err := pu.postRepository.GetPostById(id)
 	if err != nil {
+		if err == sql.ErrNoRows  {
+			return nil, errors.NotFoundBody("Can't find thread by slug: " + strconv.Itoa(id) + "\n" )
+		}
+
 		return nil, errors.UnexpectedInternal(err)
 	}
 	

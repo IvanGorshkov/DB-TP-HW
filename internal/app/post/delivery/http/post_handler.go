@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/post"
 	"github.com/gorilla/mux"
@@ -61,6 +62,17 @@ func (ph *PostHandler) Detail(w http.ResponseWriter, r *http.Request) {
 
 	res, err2 := ph.postUsecase.Detail(postID, array)
 	if err2 != nil {
+		if err2.ErrorCode == errors.NotFoundError {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
+			messagee := errors.Message{ Message: err2.Message}
+			err := json.NewEncoder(w).Encode(messagee)
+			if err != nil {
+				fmt.Println(err)
+			}
+			return
+		}
+
 		return
 	}
 
