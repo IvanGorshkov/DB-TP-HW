@@ -20,9 +20,6 @@ func NewForumRepository(conn *sql.DB) forum.ForumRepository {
     }
 }
 
- /****
-
-****/
 func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit int) ([]*models.User, error) {
 	query := `SELECT u.nickname, u.email, u.fullname, u.about from users_forum
     join users u on users_forum.nickname = u.nickname

@@ -26,7 +26,7 @@ func(sr *ServiceRepository) Clear() (error) {
 func(sr *ServiceRepository) GetStatus() (*models.Status, error) {
 	var status models.Status
 	err := sr.dbConn.QueryRow(
-		`SELECT * FROM 
+		`SELECT 
 		(SELECT COUNT(*) FROM forum) as forumCount,
 		(SELECT COUNT(*) FROM posts) as postCount,
 		(SELECT COUNT(*) FROM thread) as threadCount,

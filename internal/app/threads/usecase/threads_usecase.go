@@ -150,11 +150,6 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 					return nil, errors.UnexpectedInternal(err2)
 				}
 				return thread2, nil
-				// if vote.Votes < 0 {
-					// 	thread.Votes += 2 * int32(vote.Votes);
-				// } else {
-					// 	thread.Votes += int32(vote.Votes);
-				// }
 			} 
 
 			return thread, nil
@@ -171,7 +166,7 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 	threadID, err := strconv.Atoi(slug)
 	var thread = &models.Thread{}
 	if err != nil {
-		thread, err = tu.threadsRepo.ThreadBySlug(slug)
+		thread, err = tu.threadsRepo.ThreadBySlug_FORUM_ID(slug)
 		if err != nil {
 			if err == sql.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
@@ -179,7 +174,7 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 			return nil, errors.UnexpectedInternal(err)
 		}
 	} else {
-		thread, err = tu.threadsRepo.ThreadById(threadID)
+		thread, err = tu.threadsRepo.ThreadById_ID_FORUM_ID(threadID)
 		if err != nil {
 			if err == sql.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find post thread by id: " + slug + "\n" )

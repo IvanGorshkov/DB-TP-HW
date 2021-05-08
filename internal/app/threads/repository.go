@@ -12,4 +12,8 @@ type ThreadsRepository interface {
 	Vote(vote *models.Vote) (error)
 	UpdateVote(vote *models.Vote) (error)
 	ViewPosts(sort, desc, since string, limit, id int) ([]*models.Post, error)
+
+
+	ThreadBySlug_FORUM_ID(slug string) (*models.Thread, error)
+	ThreadById_ID_FORUM_ID(id int) (*models.Thread, error)
 }

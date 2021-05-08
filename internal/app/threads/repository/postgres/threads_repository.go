@@ -69,8 +69,6 @@ func FormQueryFlatSort(limit, threadID int, sort, since string, desc bool) strin
 	}
 	if desc {
 		query += " ORDER BY created desc, id desc"
-	} else if !desc {
-		query += " ORDER BY created asc, id"
 	} else {
 		query += " ORDER BY created, id"
 	}
@@ -215,6 +213,25 @@ func (tr *ThreadsRepository) ThreadById(id int) (*models.Thread, error) {
 }
 
 
+func (tr *ThreadsRepository) ThreadBySlug_FORUM_ID(slug string) (*models.Thread, error) {
+	var thread models.Thread
+	err := tr.dbConn.QueryRow(`SELECT id, forum from thread where slug = $1`, slug).Scan(&thread.Id, &thread.Forum)
+	if err != nil {
+		return nil, err
+	}
+	return &thread, nil
+}
+
+func (tr *ThreadsRepository) ThreadById_ID_FORUM_ID(id int) (*models.Thread, error) {
+	var thread models.Thread
+	err := tr.dbConn.QueryRow(`SELECT id, forum from thread where id = $1`, id).Scan(&thread.Id, &thread.Forum)
+	if err != nil {
+		return nil, err
+	}
+	return &thread, nil
+}
+
+
 func (tr *ThreadsRepository) ThreadBySlug(slug string) (*models.Thread, error) {
 	var thread models.Thread
 	err := tr.dbConn.QueryRow(`SELECT slug, id, forum, title, author, message, votes, created from thread where slug = $1`, slug).Scan(&thread.Slug, &thread.Id, &thread.Forum, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &thread.Created)
@@ -223,6 +240,7 @@ func (tr *ThreadsRepository) ThreadBySlug(slug string) (*models.Thread, error) {
 	}
 	return &thread, nil
 }
+
 
 func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, error) {
 
