@@ -36,6 +36,10 @@ func NewThreadsUsecase(
 func (pu *PostUsecase)  Update(id int, post models.Post) (*models.Post, *errors.Error) {
 	res, err := pu.postRepository.Update(id, post)
 	if err != nil {
+		if err == sql.ErrNoRows  {
+			return nil, errors.NotFoundBody("Can't find thread by slug: " + strconv.Itoa(id) + "\n" )
+		}
+
 		return nil, errors.UnexpectedInternal(err)
 	}
 	return res, nil

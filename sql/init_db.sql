@@ -1,11 +1,12 @@
 GRANT ALL PRIVILEGES ON database formdb TO postgres;
+CREATE EXTENSION IF NOT EXISTS citext;
 
 create table if not exists users
 (
     id          serial primary key,
-    nickname    varchar(128) UNIQUE,
+    nickname    citext UNIQUE,
     fullname    varchar(128) NOT NULL,
-    email       varchar(128) UNIQUE,
+    email       citext UNIQUE,
     about       TEXT
 );
 
@@ -14,8 +15,8 @@ create table if not exists forum
 (
     id          serial primary key,
     title       varchar(128) NOT NULL,
-    nickname    varchar(128) NOT NULL,
-    slug        varchar(128) NOT NULL UNIQUE,
+    nickname    citext NOT NULL,
+    slug        citext NOT NULL UNIQUE,
     post        bigint default 0,
     threads     int default 0,
 
@@ -26,12 +27,12 @@ create table if not exists thread
 (
     id          serial primary key,
     title       varchar(128) NOT NULL,
-    author      varchar(128) NOT NULL,
-    forum       varchar(128) NOT NULL,
+    author      citext NOT NULL,
+    forum       citext NOT NULL,
     message     TEXT NOT NULL,
     votes       int default 0,
     created     timestamp with time zone default now(),
-    slug        varchar(128),
+    slug        citext,
 
     FOREIGN KEY (author) REFERENCES Users (nickname),
     FOREIGN KEY (forum) REFERENCES forum (slug) 
@@ -41,10 +42,10 @@ create table if not exists  posts
 (
     id          serial primary key,
     parent      int default 0,
-    author      varchar(128) NOT NULL,
+    author      citext NOT NULL,
     message     TEXT NOT NULL,
     is_edited   boolean default false,
-    forum       varchar(128) NOT NULL,
+    forum       citext NOT NULL,
     thread      integer  NOT NULL,
     created     timestamp with time zone default now(),
     Path        INTEGER[]  DEFAULT ARRAY []::INTEGER[],
@@ -57,7 +58,7 @@ create table if not exists  posts
 create table if not exists  votes
 (
     id          serial primary key,
-    nickname    varchar(128) NOT NULL,
+    nickname    citext NOT NULL,
     thread      int  NOT NULL,
     voice       int  not null,
 
@@ -65,6 +66,18 @@ create table if not exists  votes
     FOREIGN KEY (thread) REFERENCES thread(id),
     unique (nickname, thread)
 );
+
+create table if not exists users_forum
+(
+    id          serial primary key,
+    nickname    citext NOT NULL,
+    slug        citext NOT NULL,
+
+    FOREIGN KEY (nickname) REFERENCES Users (nickname),
+    FOREIGN KEY (slug) REFERENCES forum(slug),
+    UNIQUE (nickname, slug)
+);
+
 
 CREATE OR REPLACE FUNCTION insert_votes_threads()
     RETURNS TRIGGER AS
@@ -147,17 +160,6 @@ CREATE TRIGGER addThreadInForum
     FOR EACH ROW
 EXECUTE PROCEDURE updateCountOfThreads();
 
-CREATE UNLOGGED TABLE users_forum
-(
-    id          serial primary key,
-    nickname    varchar(128) NOT NULL,
-    slug        varchar(128) NOT NULL,
-
-    FOREIGN KEY (nickname) REFERENCES Users (nickname),
-    FOREIGN KEY (slug) REFERENCES forum(slug),
-    UNIQUE (nickname, slug)
-);
-
 CREATE OR REPLACE FUNCTION update_user_forum() RETURNS TRIGGER AS
 $update_users_forum$
 BEGIN
@@ -178,3 +180,40 @@ CREATE TRIGGER post_insert_user_forum
     ON posts
     FOR EACH ROW
 EXECUTE PROCEDURE update_user_forum();
+
+/*
+CREATE INDEX if not exists users_nickname   on      users   using hash (nickname);
+CREATE INDEX if not exists users_email      on      users   using hash (email);
+CREATE INDEX if not exists forum_nickname   on      forum   using hash (nickname);
+CREATE INDEX if not exists forum_slug       on      forum   using hash (slug);
+
+CREATE INDEX if not exists thread_slug      on      thread  using hash (slug);
+CREATE INDEX if not exists thread_author    on      thread  using hash (author);
+CREATE INDEX if not exists posts_author     on      posts   using hash  (author);
+CREATE INDEX if not exists posts_forum      on      posts   using hash  (forum);
+CREATE INDEX if not exists thread_date ON thread (created);
+*/
+
+CREATE INDEX if not exists user_nickname_index  ON users using hash (nickname);
+CREATE INDEX if not exists user_email_index     ON users using hash (email);
+
+CREATE INDEX if not exists forum_slug_index     ON forum using hash (slug);
+
+create unique index if not exists forum_users_unique_index on users_forum (slug, nickname);
+cluster users_forum using forum_users_unique_index;
+
+CREATE INDEX if not exists thread_slug_index        ON thread using hash (slug);
+CREATE INDEX if not exists thread_forum_index       ON thread using hash (forum);
+CREATE INDEX if not exists thread_date_index        ON thread (created);
+CREATE INDEX if not exists thread_forum_date_index  ON thread (forum, created);
+
+create index if not exists post_id_path_index  on posts (id, (path[1]));
+create index if not exists post_thread_id_path1_parent_index on posts (thread, id, (path[1]), parent);
+create index if not exists post_thread_path_id_index  on posts (thread, path, id);
+
+
+create index if not exists post_path1_index on posts ((path[1]));
+create index if not exists post_thread_id_index on posts (thread, id);
+CREATE INDEX if not exists post_thr_id_index ON posts (thread);
+
+create unique index if not exists vote_unique_index on votes (nickname, Thread);

@@ -42,8 +42,20 @@ func (ph *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	res, err2 := ph.postUsecase.Update(postID, post)
 	if err2 != nil {
+		if err2.ErrorCode == errors.NotFoundError {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
+			messagee := errors.Message{ Message: err2.Message}
+			err := json.NewEncoder(w).Encode(messagee)
+			if err != nil {
+				fmt.Println(err)
+			}
+			return
+		}
+
 		return
 	}
+	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)

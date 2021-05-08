@@ -25,7 +25,8 @@ func (pr *PostRepository) Update(id int, post models.Post) (*models.Post, error)
 	err := pr.dbConn.QueryRow(
 		`UPDATE posts SET message=COALESCE(NULLIF($1, ''), message),
 		is_edited = CASE WHEN $1 = '' OR message = $1 THEN is_edited ELSE true END
-							 WHERE id=$2 RETURNING id, parent, author, message, is_edited, forum, thread, created`,
+							 WHERE id=$2 
+							 RETURNING id, parent, author, message, is_edited, forum, thread, created`,
 							 post.Message,
 							 id,
 	).Scan(
@@ -55,7 +56,8 @@ func (pr *PostRepository) GetPostById(id int) (*models.Post, error) {
 	var post models.Post
 
 	var parent sql.NullInt64
-	err := pr.dbConn.QueryRow(`SELECT id, parent, author, message, is_edited, forum, thread, created from posts 
+	err := pr.dbConn.QueryRow(`SELECT id, parent, author, message, is_edited, forum, thread, created 
+								from posts 
 								WHERE id = $1`, id).Scan(&post.ID, &parent ,&post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
 	
 

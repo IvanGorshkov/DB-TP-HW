@@ -28,7 +28,7 @@ func(ur *UserRepository) Create(user *models.User) ([]*models.User, error) {
 
 
 	var users []*models.User
-	queryUser, err := ur.dbConn.Query(`SELECT nickname, fullname, email, about FROM users WHERE LOWER(nickname) = LOWER($1) or LOWER(email) = LOWER($2)`, user.Nickname, user.Email)
+	queryUser, err := ur.dbConn.Query(`SELECT nickname, fullname, email, about FROM users WHERE nickname = $1 or email = $2`, user.Nickname, user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -70,22 +70,16 @@ func(ur *UserRepository) Create(user *models.User) ([]*models.User, error) {
 }
 
 func(ur *UserRepository) GetProfile(nickname string) (*models.User, error) {
-	queryUser, err := ur.dbConn.Query(`SELECT nickname, fullname, email, about FROM users WHERE LOWER(nickname)= LOWER($1)`, nickname)
-		if err != nil {
-			return nil, err
-		}
 
-		defer queryUser.Close()
-
-		for queryUser.Next() {
-			var user models.User 
-			err = queryUser.Scan(&user.Nickname, &user.Fullname, &user.Email, &user.About)
-			if err != nil {
-				return nil, err
-			}
-			return &user, nil
-		}
-		return nil, nil
+	var user models.User 
+	err := ur.dbConn.QueryRow(`SELECT nickname, fullname, email, about FROM users WHERE nickname = $1`, nickname).Scan(
+		&user.Nickname, &user.Fullname, &user.Email, &user.About,
+	)
+	
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func(ur *UserRepository) UpdateProfile(user *models.User) (*models.User, error) {
@@ -95,40 +89,32 @@ func(ur *UserRepository) UpdateProfile(user *models.User) (*models.User, error) 
 	if err != nil {
 		return nil, err
 	}
-	var findUser models.User
-	err = tx.QueryRow(
-		`SELECT nickname from users where LOWER(email) = LOWER($1)`,
-		user.Email,
-	).Scan(&findUser.Nickname)
-
-	if findUser.Nickname != "" {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil {
-			return nil, rollbackErr
-		}
-		return nil, errors.New(findUser.Nickname)
-	}
 
 	err = tx.QueryRow(
-		`UPDATE users SET email=COALESCE(NULLIF($1, ''), email), 
+		`UPDATE users SET 	  email=COALESCE(NULLIF($1, ''), email), 
 							  about=COALESCE(NULLIF($2, ''), about), 
-							  fullname=COALESCE(NULLIF($3, ''), fullname) WHERE LOWER(nickname)=LOWER($4) RETURNING nickname, fullname, about, email`,
+							  fullname=COALESCE(NULLIF($3, ''), fullname) 
+							  WHERE nickname = $4 
+							  RETURNING nickname, fullname, about, email`,
 		user.Email,
 		user.About,
 		user.Fullname,
 		user.Nickname,
 	).Scan(&newUser.Nickname, &newUser.Fullname, &newUser.About, &newUser.Email)
+	
 	if err != nil {
 		rollbackErr := tx.Rollback()
 		if rollbackErr != nil {
 			return nil, rollbackErr
 		}
 
-			if err == sql.ErrNoRows {
-				return nil, sql.ErrNoRows 
-			}
+		if err == sql.ErrNoRows {
+			return nil, sql.ErrNoRows 
+		}
 		return nil, err
 	}
+
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err

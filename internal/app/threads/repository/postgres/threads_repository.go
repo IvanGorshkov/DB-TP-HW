@@ -23,7 +23,8 @@ func NewThreadsRepository(conn *sql.DB) threads.ThreadsRepository {
 
 func (tr *ThreadsRepository) UpdateById(thread *models.Thread, id int) (*models.Thread, error) {
 	var new_thread models.Thread
-	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE id = $3 RETURNING *`
+	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE id = $3 RETURNING 
+	id, title, author, forum, message, votes, created, slug`
 	tr.dbConn.QueryRow(query, thread.Title, thread.Message, id).Scan(
 		&new_thread.Id,
 		&new_thread.Title,
@@ -40,8 +41,9 @@ func (tr *ThreadsRepository) UpdateById(thread *models.Thread, id int) (*models.
 
 func (tr *ThreadsRepository) UpdateBySlug(thread *models.Thread, slug string) (*models.Thread, error) {
 	var new_thread models.Thread
-	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE LOWER(slug) = LOWER($3) RETURNING *`
-	tr.dbConn.QueryRow(query, thread.Title, thread.Message, slug).Scan(
+	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE slug = $3 RETURNING 
+	id, title, author, forum, message, votes, created, slug`
+	tr.dbConn.QueryRow(query, thread.Title, thread.Message, slug).Scan( 
 		&new_thread.Id,
 		&new_thread.Title,
 		&new_thread.Author,
@@ -215,7 +217,7 @@ func (tr *ThreadsRepository) ThreadById(id int) (*models.Thread, error) {
 
 func (tr *ThreadsRepository) ThreadBySlug(slug string) (*models.Thread, error) {
 	var thread models.Thread
-	err := tr.dbConn.QueryRow(`SELECT slug, id, forum, title, author, message, votes, created from thread where LOWER(slug) = LOWER($1)`, slug).Scan(&thread.Slug, &thread.Id, &thread.Forum, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &thread.Created)
+	err := tr.dbConn.QueryRow(`SELECT slug, id, forum, title, author, message, votes, created from thread where slug = $1`, slug).Scan(&thread.Slug, &thread.Id, &thread.Forum, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &thread.Created)
 	if err != nil {
 		return nil, err
 	}
