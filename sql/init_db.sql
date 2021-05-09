@@ -79,6 +79,27 @@ create table if not exists users_forum
 );
 
 
+CREATE OR REPLACE FUNCTION thread_insert() RETURNS TRIGGER AS
+$thread_insert$
+DECLARE
+    Slug_thread         TEXT;
+BEGIN
+    SELECT slug from thread where slug = NEW.slug INTO Slug_thread;
+    IF (Slug_thread <> '') THEN
+        RAISE EXCEPTION 'Cant find thread by slug' USING ERRCODE = '23505';
+    end if;
+
+    return NEW;
+end
+$thread_insert$ LANGUAGE plpgsql;
+
+CREATE TRIGGER thread_insert
+    BEFORE INSERT
+    ON thread
+    FOR EACH ROW
+EXECUTE PROCEDURE thread_insert();
+
+
 CREATE OR REPLACE FUNCTION insert_votes_threads()
     RETURNS TRIGGER AS
 $insert_votes_threads$
@@ -181,18 +202,6 @@ CREATE TRIGGER post_insert_user_forum
     FOR EACH ROW
 EXECUTE PROCEDURE update_user_forum();
 
-/*
-CREATE INDEX if not exists users_nickname   on      users   using hash (nickname);
-CREATE INDEX if not exists users_email      on      users   using hash (email);
-CREATE INDEX if not exists forum_nickname   on      forum   using hash (nickname);
-CREATE INDEX if not exists forum_slug       on      forum   using hash (slug);
-
-CREATE INDEX if not exists thread_slug      on      thread  using hash (slug);
-CREATE INDEX if not exists thread_author    on      thread  using hash (author);
-CREATE INDEX if not exists posts_author     on      posts   using hash  (author);
-CREATE INDEX if not exists posts_forum      on      posts   using hash  (forum);
-CREATE INDEX if not exists thread_date ON thread (created);
-*/
 
 CREATE INDEX if not exists user_nickname_index  ON users using hash (nickname);
 CREATE INDEX if not exists user_email_index     ON users using hash (email);
@@ -214,6 +223,6 @@ create index if not exists post_thread_path_id_index  on posts (thread, path, id
 
 create index if not exists post_path1_index on posts ((path[1]));
 create index if not exists post_thread_id_index on posts (thread, id);
-CREATE INDEX if not exists post_thr_id_index ON posts (thread);
+CREATE INDEX if not exists post_thread_index ON posts (thread);
 
 create unique index if not exists vote_unique_index on votes (nickname, Thread);

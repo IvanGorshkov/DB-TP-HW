@@ -7,16 +7,20 @@ import (
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
+	"github.com/IvanGorshkov/DB-TP-HW/internal/app/threads"
 	"github.com/jackc/pgx"
 )
 
 type FourmUsecase struct {
 	forumRepo forum.ForumRepository
+	thredRepo threads.ThreadsRepository
 }
 
-func NewUserUsecase(repo forum.ForumRepository) forum.ForumUsecase {
+func NewUserUsecase(repo forum.ForumRepository, 
+	thredRepo threads.ThreadsRepository) forum.ForumUsecase {
 	return &FourmUsecase{
 		forumRepo: repo,
+		thredRepo: thredRepo,
 	}
 }
 
@@ -61,6 +65,11 @@ func(fu *FourmUsecase) CreateThread(thread *models.Thread) (*models.Thread, *err
 
 		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23502" {
 			return res, errors.NotFoundBody("Can't find thread forum by slug " + thread.Forum + "\n")
+		}
+
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23505" {
+			thr, _ := fu.thredRepo.ThreadBySlug(thread.Slug)
+			return thr, errors.CustomErrors[errors.ConflictError]
 		}
 
 		if err.Error() == "409" {
