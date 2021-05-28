@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/threads"
@@ -209,9 +210,7 @@ func (tr *ThreadsRepository) ThreadById(id int) (*models.Thread, error) {
 		return nil, err
 	}
 	return &thread, nil
-
 }
-
 
 func (tr *ThreadsRepository) ThreadBySlug_FORUM_ID(slug string) (*models.Thread, error) {
 	var thread models.Thread
@@ -243,24 +242,38 @@ func (tr *ThreadsRepository) ThreadBySlug(slug string) (*models.Thread, error) {
 
 
 func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, error) {
+	query := `INSERT INTO posts(parent, author, forum, message, thread) VALUES`
 
-	query := `INSERT INTO posts (parent, author, message, forum, thread)
-			VALUES `
+	var values []interface{}
 	for i, post := range posts {
-		if i != 0 {
-			query += ", "
-		}
-		query += fmt.Sprintf("(NULLIF(%d, 0), '%s', '%s', '%s', %d)", post.Parent, post.Author,
-			post.Message, post.Forum, post.Thread)
+		value := fmt.Sprintf(
+			"(NULLIF($%d, 0), $%d, $%d, $%d, $%d),",
+			i * 5 + 1, i * 5 + 2, i * 5 + 3, i * 5 + 4, i * 5 + 5,
+		)
+
+		//userId := p.SelectIdByNickname(post.Author)
+
+
+		query += value
+
+
+		values = append(values, post.Parent)
+		values = append(values, post.Author)
+		values = append(values, post.Forum)
+		values = append(values, post.Message)
+		values = append(values, post.Thread)
 	}
-	query += " returning id, parent, author, message, is_edited, forum, thread, created"
+
+	query = strings.TrimSuffix(query, ",")
+
+	query += " returning id, created, forum, is_edited, thread;"
 
     tx, err := tr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
 	if err != nil {
         return nil, err
     }
 
-	res, err2 := tx.Query(query)
+	res, err2 := tx.Query(query, values...)
 	if err2 != nil {
         rollbackErr := tx.Rollback()
         if rollbackErr != nil {
@@ -269,21 +282,15 @@ func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, e
         return nil, err2
     }
 
-	newPosts := make([]*models.Post, 0)
-	var parent sql.NullInt64
 	defer res.Close()
-	for res.Next() {
-		post := &models.Post{}
-		err = res.Scan(&post.ID, &parent, &post.Author, &post.Message,
-			&post.IsEdited, &post.Forum, &post.Thread, &post.Created)
-	
-		if parent.Valid {
-			post.Parent = int(parent.Int64)
+	for i, _ := range posts {
+		if res.Next() {
+			err := res.Scan(&(posts)[i].ID, &(posts)[i].Created, &(posts)[i].Forum, &(posts)[i].IsEdited, &(posts)[i].Thread)
+			if err != nil {
+				fmt.Println(err)
+				return nil, err
+			}
 		}
-		if err != nil {
-			return nil, err
-		}
-		newPosts = append(newPosts, post)
 	}
 
 	if res.Err() != nil {
@@ -295,5 +302,5 @@ func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, e
         return nil, err
     }
 
-	return newPosts, nil
+	return posts, nil
 }
