@@ -33,7 +33,7 @@ import(
 func main() {
 	postgresDB, err := databases.NewPostgres(databases.GetPostgresConfig())
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 

@@ -2,16 +2,19 @@ package repository
 
 import (
 	"database/sql"
+	"github.com/go-openapi/strfmt"
+	"github.com/jackc/pgx"
+	"time"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/post"
 )
 
 type PostRepository struct {
-	dbConn *sql.DB
+	dbConn *pgx.ConnPool
 }
 
-func NewPostRepository(conn *sql.DB) post.PostRepository {
+func NewPostRepository(conn *pgx.ConnPool) post.PostRepository {
 	return &PostRepository{
 		dbConn: conn,
 	}
@@ -21,6 +24,7 @@ func NewPostRepository(conn *sql.DB) post.PostRepository {
 func (pr *PostRepository) Update(id int, post models.Post) (*models.Post, error) {
 	var newPost models.Post
 
+	var created time.Time
 	var parent sql.NullInt64
 	err := pr.dbConn.QueryRow(
 		`UPDATE posts 
@@ -37,8 +41,10 @@ func (pr *PostRepository) Update(id int, post models.Post) (*models.Post, error)
 		&newPost.IsEdited,
 		&newPost.Forum,
 		&newPost.Thread,
-		&newPost.Created,
+		&created,
 	)
+
+	newPost.Created = strfmt.DateTime(created.UTC()).String()
 
 	newPost.ID = id
 	if parent.Valid {
@@ -56,15 +62,17 @@ func (pr *PostRepository) Update(id int, post models.Post) (*models.Post, error)
 func (pr *PostRepository) GetPostById(id int) (*models.Post, error) {
 	var post models.Post
 
+	var created time.Time
 	var parent sql.NullInt64
 	err := pr.dbConn.QueryRow(`SELECT parent, author, message, is_edited, forum, thread, created 
 								from posts 
-								WHERE id = $1`, id).Scan(&parent ,&post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &post.Created)
+								WHERE id = $1`, id).Scan(&parent ,&post.Author, &post.Message, &post.IsEdited, &post.Forum, &post.Thread, &created)
 	
 	post.ID = id
 	if parent.Valid {
 		post.Parent = int(parent.Int64)
 	}
+	post.Created = strfmt.DateTime(created.UTC()).String()
 
 	if err != nil {
 		return nil, err

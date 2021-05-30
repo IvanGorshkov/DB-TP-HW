@@ -2,13 +2,12 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
-	"net/http"
-	"strconv"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/gorilla/mux"
+	"net/http"
+	"strconv"
 )
 
 type ForumHandler struct {
@@ -31,20 +30,20 @@ func (fh *ForumHandler) Configure(r *mux.Router) {
 }
 
 func (fh *ForumHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/forum/{slug}/users Get")
+
 	vars := mux.Vars(r)
 
 	limit, err := strconv.Atoi(string(r.FormValue("limit")))
 	if err != nil {
-		fmt.Println(err)
+
 	}
 	since := string(r.FormValue("since"))
 	if err != nil {
-		fmt.Println(err)
+
 	}
 	desc := string(r.FormValue("desc"))
 	if err != nil {
-		fmt.Println(err)
+
 	}
 
 	res, err2 := fh.forumUsecase.GetUserByParams(vars["slug"], since, desc, limit)
@@ -60,7 +59,7 @@ func (fh *ForumHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -70,28 +69,24 @@ func (fh *ForumHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 
 }
 
 func (fh *ForumHandler) GetThreads(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/forum/{slug}/threads Get")
+
 	vars := mux.Vars(r)
 
-	limit, err := strconv.Atoi(string(r.FormValue("limit")))
+	limit, err := strconv.Atoi(r.FormValue("limit"))
 	if err != nil {
-		fmt.Println(err)
+
 	}
-	since := string(r.FormValue("since"))
-	if err != nil {
-		fmt.Println(err)
-	}
-	desc := string(r.FormValue("desc"))
-	if err != nil {
-		fmt.Println(err)
-	}
+
+	since := r.FormValue("since")
+	desc := r.FormValue("desc")
+
 
 	res, err2 := fh.forumUsecase.GetThreadsByParams(vars["slug"], since, desc, limit)
 
@@ -106,7 +101,7 @@ func (fh *ForumHandler) GetThreads(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -116,18 +111,18 @@ func (fh *ForumHandler) GetThreads(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 
 }
 
 func (fh *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/forum/{slug}/create POST")
+
 	threadModel := &models.Thread{}
 	err := json.NewDecoder(r.Body).Decode(&threadModel)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 	vars := mux.Vars(r)
@@ -145,7 +140,7 @@ func (fh *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -155,7 +150,7 @@ func (fh *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusConflict)
 			err = json.NewEncoder(w).Encode(res)
 			if err != nil {
-				fmt.Println(err)
+
 				return
 			}
 			return
@@ -166,13 +161,13 @@ func (fh *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
 
 func (fh *ForumHandler) detailsForum(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/forum/{slug}/details GET")
+
 	vars := mux.Vars(r)
 	res, err2 := fh.forumUsecase.Detail(vars["slug"])
 	if  err2 != nil {
@@ -186,7 +181,7 @@ func (fh *ForumHandler) detailsForum(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -194,20 +189,21 @@ func (fh *ForumHandler) detailsForum(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err := json.NewEncoder(w).Encode(res)
+	data, err := res.MarshalJSON()
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
+	w.Write(data)
 }
 
 func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/forum/create POST")
+
 
 	forumModel := &models.Forum{}
 	err := json.NewDecoder(r.Body).Decode(&forumModel)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 
@@ -222,7 +218,7 @@ func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(err2.HttpError)
 			err = json.NewEncoder(w).Encode(res)
 			if err != nil {
-				fmt.Println(err)
+
 				return
 			}
 			return
@@ -234,7 +230,7 @@ func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -244,7 +240,7 @@ func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }

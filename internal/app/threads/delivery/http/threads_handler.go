@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -33,7 +32,7 @@ func (th *ThreadsHandler) Configure(r *mux.Router) {
 
 
 func (th *ThreadsHandler) Update(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/thread/{slug_or_id}/details Post")
+
 	vars := mux.Vars(r)
 	var thread = models.Thread{}
 	err := json.NewDecoder(r.Body).Decode(&thread)
@@ -49,7 +48,7 @@ func (th *ThreadsHandler) Update(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -60,32 +59,32 @@ func (th *ThreadsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
 
 func (th *ThreadsHandler) ViewPosts(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/thread/{slug_or_id}/posts Get")
+
 
 	vars := mux.Vars(r)
 
 	limit, err := strconv.Atoi(string(r.FormValue("limit")))
 	if err != nil {
-		fmt.Println(err)
+
 	}
 	since := string(r.FormValue("since"))
 	if err != nil {
-		fmt.Println(err)
+
 	}
 	desc := string(r.FormValue("desc"))
 	if err != nil {
-		fmt.Println(err)
+
 	}
 
 	sort := string(r.FormValue("sort"))
 	if err != nil {
-		fmt.Println(err)
+
 	}
 
 	res, err2 := th.threadsUsecase.ViewPosts(vars["slug_or_id"], sort, desc, since, limit)
@@ -101,7 +100,7 @@ func (th *ThreadsHandler) ViewPosts(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -111,13 +110,13 @@ func (th *ThreadsHandler) ViewPosts(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
 
 func (th *ThreadsHandler) Detail(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/thread/{slug_or_id}/details Get")
+
 	vars := mux.Vars(r)
 	res, err2 := th.threadsUsecase.Detail(vars["slug_or_id"])
 	if err2 != nil {
@@ -131,7 +130,7 @@ func (th *ThreadsHandler) Detail(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -142,13 +141,13 @@ func (th *ThreadsHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
 
 func (th *ThreadsHandler) Vote(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/thread/{slug_or_id}/vote Post")
+
 	var vote = models.Vote{}
 	err := json.NewDecoder(r.Body).Decode(&vote)
 	if err != nil {
@@ -168,7 +167,7 @@ func (th *ThreadsHandler) Vote(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -179,14 +178,14 @@ func (th *ThreadsHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 
 }
 
 func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("/thread/{slug}/create Post")
+
 	posts := make([]*models.Post, 0)
 	err := json.NewDecoder(r.Body).Decode(&posts)
 	if err != nil {
@@ -194,6 +193,7 @@ func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	vars := mux.Vars(r)
 	res, err2 := th.threadsUsecase.CreatePost(posts, vars["slug"])
+
 	if err2 != nil {
 		if  err2.ErrorCode == errors.InternalError {
 			return
@@ -205,7 +205,7 @@ func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -215,7 +215,7 @@ func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusConflict)
 			err = json.NewEncoder(w).Encode(res)
 			if err != nil {
-				fmt.Println(err)
+
 				return
 			}
 			return
@@ -223,9 +223,11 @@ func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+
+
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 

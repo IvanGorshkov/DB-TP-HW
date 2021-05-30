@@ -1,20 +1,21 @@
 package repository
 
 import (
-    "context"
-    "database/sql"
     "errors"
     "fmt"
+    "github.com/go-openapi/strfmt"
+    "github.com/jackc/pgx"
+    "time"
 
     "github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
     "github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 )
 
 type ForumRepository struct {
-    dbConn *sql.DB
+    dbConn *pgx.ConnPool
 }
 
-func NewForumRepository(conn *sql.DB) forum.ForumRepository {
+func NewForumRepository(conn *pgx.ConnPool) forum.ForumRepository {
     return &ForumRepository{
         dbConn: conn,
     }
@@ -43,9 +44,9 @@ func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit i
 	query += " LIMIT NULLIF($2, 0)"
 
     q, err := fr.dbConn.Query(query, forumSlug, limit)
-
+    defer  q.Close()
     if err != nil {
-        fmt.Println(err)
+
         return nil, err
     }
 	users := make([]*models.User, 0)
@@ -92,20 +93,24 @@ func(fr *ForumRepository) GetThreadsByParams(forumSlug, since, desc string, limi
     }
 
     q, err := fr.dbConn.Query(query, args...)
+    defer q.Close()
     if err != nil {
-        fmt.Println(err)
+
         return nil, err
     }
 
     threads := make([]*models.Thread, 0)
     for q.Next() {
         thread := &models.Thread{}
+        var created time.Time
         err = q.Scan(&thread.Id, &thread.Title,
             &thread.Author, &thread.Forum, &thread.Message, &thread.Votes,
-            &thread.Slug, &thread.Created)
+            &thread.Slug, &created)
             if err != nil {
                 return nil, err
             }
+
+        thread.Created = strfmt.DateTime(created.UTC()).String()
         threads = append(threads, thread)
     }
 
@@ -114,7 +119,7 @@ func(fr *ForumRepository) GetThreadsByParams(forumSlug, since, desc string, limi
 
 func(fr *ForumRepository) ThreadCreate(thread *models.Thread) (*models.Thread, error) {
 
-    tx, err := fr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
+    tx, err := fr.dbConn.Begin()
     if err != nil {
         return nil, err
     }
@@ -179,7 +184,7 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
     var user string;
     err = fr.dbConn.QueryRow(`SELECT nickname from users where nickname = $1`,forum.User).Scan(&user)
     forum.User = user
-    tx, err := fr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
+    tx, err := fr.dbConn.Begin()
     if err != nil {
         return nil, err
     }
@@ -209,8 +214,8 @@ func (fr *ForumRepository) Detail(slug string) (*models.Forum, error) {
     var forum models.Forum
     err := fr.dbConn.QueryRow(`SELECT title, nickname, slug, post, threads from forum where slug = $1`, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
     if err != nil {
-        if err == sql.ErrNoRows {
-            return nil, sql.ErrNoRows 
+        if err == pgx.ErrNoRows {
+            return nil, pgx.ErrNoRows
         }
         return nil, err
     }

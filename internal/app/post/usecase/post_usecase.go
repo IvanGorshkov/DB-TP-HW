@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx"
 	"strconv"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
@@ -36,7 +36,7 @@ func NewThreadsUsecase(
 func (pu *PostUsecase)  Update(id int, post models.Post) (*models.Post, *errors.Error) {
 	res, err := pu.postRepository.Update(id, post)
 	if err != nil {
-		if err == sql.ErrNoRows  {
+		if err == pgx.ErrNoRows  {
 			return nil, errors.NotFoundBody("Can't find thread by slug: " + strconv.Itoa(id) + "\n" )
 		}
 
@@ -49,7 +49,7 @@ func (pu *PostUsecase) Detail(id int, related []string) (*models.PostFull, *erro
 	var postFull models.PostFull
 	post, err := pu.postRepository.GetPostById(id)
 	if err != nil {
-		if err == sql.ErrNoRows  {
+		if err == pgx.ErrNoRows  {
 			return nil, errors.NotFoundBody("Can't find thread by slug: " + strconv.Itoa(id) + "\n" )
 		}
 

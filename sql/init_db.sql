@@ -1,229 +1,232 @@
-GRANT ALL PRIVILEGES ON database formdb TO docker;
-CREATE EXTENSION IF NOT EXISTS citext;
+GRANT ALL PRIVILEGES ON DATABASE FORMDB TO DOCKER;
 
-create table if not exists users
+--GRANT ALL PRIVILEGES ON DATABASE FORMDB TO POSTGRES;
+
+CREATE EXTENSION IF NOT EXISTS CITEXT;
+
+CREATE TABLE IF NOT EXISTS USERS
 (
-    id          serial primary key,
-    nickname    citext UNIQUE,
-    fullname    varchar(128) NOT NULL,
-    email       citext UNIQUE,
-    about       TEXT
-);
+    ID          SERIAL PRIMARY KEY,
+    NICKNAME    CITEXT UNIQUE,
+    FULLNAME    VARCHAR(128) NOT NULL,
+    EMAIL       CITEXT UNIQUE,
+    ABOUT       TEXT
+    );
 
 
-create table if not exists forum
+CREATE TABLE IF NOT EXISTS FORUM
 (
-    id          serial primary key,
-    title       varchar(128) NOT NULL,
-    nickname    citext NOT NULL,
-    slug        citext NOT NULL UNIQUE,
-    post        bigint default 0,
-    threads     int default 0,
+    ID          SERIAL PRIMARY KEY,
+    TITLE       VARCHAR(128) NOT NULL,
+    NICKNAME    CITEXT NOT NULL,
+    SLUG        CITEXT NOT NULL UNIQUE,
+    POST        BIGINT DEFAULT 0,
+    THREADS     INT DEFAULT 0,
 
-    FOREIGN KEY (nickname) REFERENCES Users (nickname) 
-);
+    FOREIGN KEY (NICKNAME) REFERENCES USERS (NICKNAME)
+    );
 
-create table if not exists thread
+CREATE TABLE IF NOT EXISTS THREAD
 (
-    id          serial primary key,
-    title       varchar(128) NOT NULL,
-    author      citext NOT NULL,
-    forum       citext NOT NULL,
-    message     TEXT NOT NULL,
-    votes       int default 0,
-    created     timestamp with time zone default now(),
-    slug        citext,
+    ID          SERIAL PRIMARY KEY,
+    TITLE       VARCHAR(128) NOT NULL,
+    AUTHOR      CITEXT NOT NULL,
+    FORUM       CITEXT NOT NULL,
+    MESSAGE     TEXT NOT NULL,
+    VOTES       INT DEFAULT 0,
+    CREATED     TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    SLUG        CITEXT,
 
-    FOREIGN KEY (author) REFERENCES Users (nickname),
-    FOREIGN KEY (forum) REFERENCES forum (slug) 
-);
+    FOREIGN KEY (AUTHOR) REFERENCES USERS (NICKNAME),
+    FOREIGN KEY (FORUM) REFERENCES FORUM (SLUG)
+    );
 
-create table if not exists  posts
+CREATE TABLE IF NOT EXISTS  POSTS
 (
-    id          serial primary key,
-    parent      int default 0,
-    author      citext NOT NULL,
-    message     TEXT NOT NULL,
-    is_edited   boolean default false,
-    forum       citext NOT NULL,
-    thread      integer  NOT NULL,
-    created     timestamp with time zone default now(),
-    Path        INTEGER[]  DEFAULT ARRAY []::INTEGER[],
+    ID          SERIAL PRIMARY KEY,
+    PARENT      INT DEFAULT 0,
+    AUTHOR      CITEXT NOT NULL,
+    MESSAGE     TEXT NOT NULL,
+    IS_EDITED   BOOLEAN DEFAULT FALSE,
+    FORUM       CITEXT NOT NULL,
+    THREAD      INTEGER  NOT NULL,
+    CREATED     TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PATH        INTEGER[]  DEFAULT ARRAY []::INTEGER[],
 
-    FOREIGN KEY (author) REFERENCES Users (nickname),
-    FOREIGN KEY (forum) REFERENCES forum (slug),
-    FOREIGN KEY (thread) REFERENCES thread (id) 
-);
+    FOREIGN KEY (AUTHOR) REFERENCES USERS (NICKNAME),
+    FOREIGN KEY (FORUM) REFERENCES FORUM (SLUG),
+    FOREIGN KEY (THREAD) REFERENCES THREAD (ID)
+    );
 
-create table if not exists  votes
+CREATE TABLE IF NOT EXISTS  VOTES
 (
-    id          serial primary key,
-    nickname    citext NOT NULL,
-    thread      int  NOT NULL,
-    voice       int  not null,
+    ID          SERIAL PRIMARY KEY,
+    NICKNAME    CITEXT NOT NULL,
+    THREAD      INT  NOT NULL,
+    VOICE       INT  NOT NULL,
 
-    FOREIGN KEY (nickname) REFERENCES Users (nickname),
-    FOREIGN KEY (thread) REFERENCES thread(id),
-    unique (nickname, thread)
-);
+    FOREIGN KEY (NICKNAME) REFERENCES USERS (NICKNAME),
+    FOREIGN KEY (THREAD) REFERENCES THREAD(ID),
+    UNIQUE (NICKNAME, THREAD)
+    );
 
-create table if not exists users_forum
+CREATE TABLE IF NOT EXISTS USERS_FORUM
 (
-    id          serial primary key,
-    nickname    citext NOT NULL,
-    slug        citext NOT NULL,
+    ID          SERIAL PRIMARY KEY,
+    NICKNAME    CITEXT NOT NULL,
+    SLUG        CITEXT NOT NULL,
 
-    FOREIGN KEY (nickname) REFERENCES Users (nickname),
-    FOREIGN KEY (slug) REFERENCES forum(slug),
-    UNIQUE (nickname, slug)
-);
+    FOREIGN KEY (NICKNAME) REFERENCES USERS (NICKNAME),
+    FOREIGN KEY (SLUG) REFERENCES FORUM(SLUG),
+    UNIQUE (NICKNAME, SLUG)
+    );
 
 
-CREATE OR REPLACE FUNCTION thread_insert() RETURNS TRIGGER AS
-$thread_insert$
+CREATE OR REPLACE FUNCTION THREAD_INSERT() RETURNS TRIGGER AS
+$THREAD_INSERT$
 DECLARE
-    Slug_thread         TEXT;
+SLUG_THREAD         TEXT;
 BEGIN
-    SELECT slug from thread where slug = NEW.slug INTO Slug_thread;
-    IF (Slug_thread <> '') THEN
-        RAISE EXCEPTION 'Cant find thread by slug' USING ERRCODE = '23505';
-    end if;
+SELECT SLUG FROM THREAD WHERE SLUG = NEW.SLUG INTO SLUG_THREAD;
+IF (SLUG_THREAD <> '') THEN
+        RAISE EXCEPTION 'CANT FIND THREAD BY SLUG' USING ERRCODE = '23505';
+END IF;
 
-    return NEW;
-end
-$thread_insert$ LANGUAGE plpgsql;
+RETURN NEW;
+END
+$THREAD_INSERT$ LANGUAGE PLPGSQL;
 
-CREATE TRIGGER thread_insert
+CREATE TRIGGER THREAD_INSERT
     BEFORE INSERT
-    ON thread
+    ON THREAD
     FOR EACH ROW
-EXECUTE PROCEDURE thread_insert();
+    EXECUTE PROCEDURE THREAD_INSERT();
 
 
-CREATE OR REPLACE FUNCTION insert_votes_threads()
+CREATE OR REPLACE FUNCTION INSERT_VOTES_THREADS()
     RETURNS TRIGGER AS
-$insert_votes_threads$
+$INSERT_VOTES_THREADS$
 BEGIN
-    UPDATE thread
-    SET votes = votes + NEW.voice
-    WHERE id = NEW.thread;
-    RETURN NEW;
+UPDATE THREAD
+SET VOTES = VOTES + NEW.VOICE
+WHERE ID = NEW.THREAD;
+RETURN NEW;
 END;
-$insert_votes_threads$ LANGUAGE plpgsql;
+$INSERT_VOTES_THREADS$ LANGUAGE PLPGSQL;
 
-DROP TRIGGER IF EXISTS insert_votes_threads ON votes;
-CREATE TRIGGER insert_votes_threads
-    AFTER INSERT 
-    ON votes
+DROP TRIGGER IF EXISTS INSERT_VOTES_THREADS ON VOTES;
+CREATE TRIGGER INSERT_VOTES_THREADS
+    AFTER INSERT
+    ON VOTES
     FOR EACH ROW
-EXECUTE PROCEDURE insert_votes_threads();
+    EXECUTE PROCEDURE INSERT_VOTES_THREADS();
 
-CREATE OR REPLACE FUNCTION update_votes_threads()
+CREATE OR REPLACE FUNCTION UPDATE_VOTES_THREADS()
     RETURNS TRIGGER AS
-$update_votes_threads$
+$UPDATE_VOTES_THREADS$
 BEGIN
-    UPDATE thread
-    SET votes = votes + (2 * NEW.voice)
-    WHERE id = NEW.thread;
-    RETURN NEW;
+UPDATE THREAD
+SET VOTES = VOTES + (2 * NEW.VOICE)
+WHERE ID = NEW.THREAD;
+RETURN NEW;
 END;
-$update_votes_threads$ LANGUAGE plpgsql;
+$UPDATE_VOTES_THREADS$ LANGUAGE PLPGSQL;
 
 
-DROP TRIGGER IF EXISTS update_votes_threads ON votes;
-CREATE TRIGGER update_votes_threads
+DROP TRIGGER IF EXISTS UPDATE_VOTES_THREADS ON VOTES;
+CREATE TRIGGER UPDATE_VOTES_THREADS
     AFTER UPDATE
-    ON votes
+    ON VOTES
     FOR EACH ROW
-EXECUTE PROCEDURE update_votes_threads();
+    EXECUTE PROCEDURE UPDATE_VOTES_THREADS();
 
-CREATE OR REPLACE FUNCTION updatePath() RETURNS TRIGGER AS
-$update_path$
+CREATE OR REPLACE FUNCTION UPDATEPATH() RETURNS TRIGGER AS
+$UPDATE_PATH$
 DECLARE
-    parentPath         INTEGER[];
-    first_parent_thread INT;
+PARENTPATH         INTEGER[];
+    FIRST_PARENT_THREAD INT;
 BEGIN
-    IF (NEW.parent IS NULL) THEN
-        NEW.path := array_append(new.path, new.id);
-    ELSE
-        SELECT path FROM posts WHERE id = new.parent INTO parentPath;
-        SELECT thread FROM posts WHERE id = parentPath[1] INTO first_parent_thread;
-        IF NOT FOUND OR first_parent_thread != NEW.thread THEN
-            RAISE EXCEPTION 'parent is from different thread' USING ERRCODE = '00409';
-        end if;
+    IF (NEW.PARENT IS NULL) THEN
+        NEW.PATH := ARRAY_APPEND(NEW.PATH, NEW.ID);
+ELSE
+SELECT PATH FROM POSTS WHERE ID = NEW.PARENT INTO PARENTPATH;
+SELECT THREAD FROM POSTS WHERE ID = PARENTPATH[1] INTO FIRST_PARENT_THREAD;
+IF NOT FOUND OR FIRST_PARENT_THREAD != NEW.THREAD THEN
+            RAISE EXCEPTION 'PARENT IS FROM DIFFERENT THREAD' USING ERRCODE = '00409';
+END IF;
 
-        NEW.path := NEW.path || parentPath || new.id;
-    end if;
-    UPDATE forum SET post=post + 1 WHERE forum.slug = new.forum;
-    RETURN new;
-end
-$update_path$ LANGUAGE plpgsql;
+        NEW.PATH := NEW.PATH || PARENTPATH || NEW.ID;
+END IF;
+UPDATE FORUM SET POST=POST + 1 WHERE FORUM.SLUG = NEW.FORUM;
+RETURN NEW;
+END
+$UPDATE_PATH$ LANGUAGE PLPGSQL;
 
-CREATE TRIGGER update_path_trigger
+CREATE TRIGGER UPDATE_PATH_TRIGGER
     BEFORE INSERT
-    ON posts
+    ON POSTS
     FOR EACH ROW
-EXECUTE PROCEDURE updatePath();
+    EXECUTE PROCEDURE UPDATEPATH();
 
 
 
-CREATE OR REPLACE FUNCTION updateCountOfThreads() RETURNS TRIGGER AS
-$update_users_forum$
+CREATE OR REPLACE FUNCTION UPDATECOUNTOFTHREADS() RETURNS TRIGGER AS
+$UPDATE_USERS_FORUM$
 BEGIN
-    UPDATE forum SET Threads=(Threads+1) WHERE slug=NEW.forum;
-    return NEW;
-end
-$update_users_forum$ LANGUAGE plpgsql;
+UPDATE FORUM SET THREADS=(THREADS+1) WHERE SLUG=NEW.FORUM;
+RETURN NEW;
+END
+$UPDATE_USERS_FORUM$ LANGUAGE PLPGSQL;
 
-CREATE TRIGGER addThreadInForum
+CREATE TRIGGER ADDTHREADINFORUM
     BEFORE INSERT
-    ON thread
+    ON THREAD
     FOR EACH ROW
-EXECUTE PROCEDURE updateCountOfThreads();
+    EXECUTE PROCEDURE UPDATECOUNTOFTHREADS();
 
-CREATE OR REPLACE FUNCTION update_user_forum() RETURNS TRIGGER AS
-$update_users_forum$
+CREATE OR REPLACE FUNCTION UPDATE_USER_FORUM() RETURNS TRIGGER AS
+$UPDATE_USERS_FORUM$
 BEGIN
-    INSERT INTO users_forum (nickname, slug)
-    VALUES (NEW.author, NEW.forum) on conflict do nothing;
-    return NEW;
-end
-$update_users_forum$ LANGUAGE plpgsql;
+INSERT INTO USERS_FORUM (NICKNAME, SLUG)
+VALUES (NEW.AUTHOR, NEW.FORUM) ON CONFLICT DO NOTHING;
+RETURN NEW;
+END
+$UPDATE_USERS_FORUM$ LANGUAGE PLPGSQL;
 
-CREATE TRIGGER thread_insert_user_forum
+CREATE TRIGGER THREAD_INSERT_USER_FORUM
     AFTER INSERT
-    ON thread
+    ON THREAD
     FOR EACH ROW
-EXECUTE PROCEDURE update_user_forum();
+    EXECUTE PROCEDURE UPDATE_USER_FORUM();
 
-CREATE TRIGGER post_insert_user_forum
+CREATE TRIGGER POST_INSERT_USER_FORUM
     AFTER INSERT
-    ON posts
+    ON POSTS
     FOR EACH ROW
-EXECUTE PROCEDURE update_user_forum();
+    EXECUTE PROCEDURE UPDATE_USER_FORUM();
 
 
-CREATE INDEX if not exists user_nickname_index  ON users using hash (nickname);
-CREATE INDEX if not exists user_email_index     ON users using hash (email);
+CREATE INDEX IF NOT EXISTS USER_NICKNAME_INDEX  ON USERS USING HASH (NICKNAME);
+CREATE INDEX IF NOT EXISTS USER_EMAIL_INDEX     ON USERS USING HASH (EMAIL);
 
-CREATE INDEX if not exists index_forums         ON forum (slug, title, user_nickname, post_count, thread_count);
-CREATE INDEX if not exists forum_slug_index     ON forum using hash (slug);
+CREATE INDEX IF NOT EXISTS FORUM_SLUG_INDEX     ON FORUM USING HASH (SLUG);
 
-create unique index if not exists forum_users_unique_index on users_forum (slug, nickname);
-cluster users_forum using forum_users_unique_index;
+CREATE UNIQUE INDEX IF NOT EXISTS FORUM_USERS_UNIQUE_INDEX ON USERS_FORUM (SLUG, NICKNAME);
+CLUSTER USERS_FORUM USING FORUM_USERS_UNIQUE_INDEX;
 
-CREATE INDEX if not exists thread_slug_index        ON thread using hash (slug);
-CREATE INDEX if not exists thread_forum_index       ON thread using hash (forum);
-CREATE INDEX if not exists thread_date_index        ON thread (created);
-CREATE INDEX if not exists thread_forum_date_index  ON thread (forum, created);
+CREATE INDEX IF NOT EXISTS THREAD_SLUG_INDEX        ON THREAD USING HASH (SLUG);
+CREATE INDEX IF NOT EXISTS THREAD_FORUM_INDEX       ON THREAD USING HASH (FORUM);
+CREATE INDEX IF NOT EXISTS THREAD_DATE_INDEX        ON THREAD (CREATED);
+CREATE INDEX IF NOT EXISTS THREAD_FORUM_DATE_INDEX  ON THREAD (FORUM, CREATED);
 
-create index if not exists post_id_path_index  on posts (id, (path[1]));
-create index if not exists post_thread_id_path1_parent_index on posts (thread, id, (path[1]), parent);
-create index if not exists post_thread_path_id_index  on posts (thread, path, id);
+CREATE INDEX IF NOT EXISTS POST_ID_PATH_INDEX  ON POSTS (ID, (PATH[1]));
+CREATE INDEX IF NOT EXISTS POST_THREAD_ID_PATH1_PARENT_INDEX ON POSTS (THREAD, ID, (PATH[1]), PARENT);
+CREATE INDEX IF NOT EXISTS POST_THREAD_PATH_ID_INDEX  ON POSTS (THREAD, PATH, ID);
 
 
-create index if not exists post_path1_index on posts ((path[1]));
-create index if not exists post_thread_id_index on posts (thread, id);
-CREATE INDEX if not exists post_thread_index ON posts (thread);
+CREATE INDEX IF NOT EXISTS POST_PATH1_INDEX ON POSTS ((PATH[1]));
+CREATE INDEX IF NOT EXISTS POST_THREAD_ID_INDEX ON POSTS (THREAD, ID);
+CREATE INDEX IF NOT EXISTS POST_THREAD_INDEX ON POSTS (THREAD);
 
-create unique index if not exists vote_unique_index on votes (nickname, Thread);
+CREATE UNIQUE INDEX IF NOT EXISTS VOTE_UNIQUE_INDEX ON VOTES (NICKNAME, THREAD);
+

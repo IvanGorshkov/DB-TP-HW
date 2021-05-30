@@ -1,17 +1,17 @@
 package repository
 
 import (
-	"database/sql"
+	"github.com/jackc/pgx"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/service"
 )
 
 type ServiceRepository struct {
-	dbConn *sql.DB
+	dbConn *pgx.ConnPool
 }
 
-func NewServiceRepository(conn *sql.DB) service.ServiceRepository {
+func NewServiceRepository(conn *pgx.ConnPool) service.ServiceRepository {
 	return &ServiceRepository{
 		dbConn: conn,
 	}

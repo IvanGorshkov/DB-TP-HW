@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"database/sql"
-	"fmt"
 	"strconv"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
@@ -28,7 +26,7 @@ func (tu *ThreadsUsecase) Update(thread *models.Thread, slug string) (*models.Th
 		_, err = tu.threadsRepo.ThreadBySlug(slug)
 
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
@@ -43,7 +41,7 @@ func (tu *ThreadsUsecase) Update(thread *models.Thread, slug string) (*models.Th
 		_, err = tu.threadsRepo.ThreadById(threadID)
 
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
@@ -66,7 +64,7 @@ func (tu *ThreadsUsecase) ViewPosts(id, sort, desc, since string, limit int) ([]
 		thread, err = tu.threadsRepo.ThreadBySlug(id)
 
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + id + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
@@ -75,7 +73,7 @@ func (tu *ThreadsUsecase) ViewPosts(id, sort, desc, since string, limit int) ([]
 		thread, err = tu.threadsRepo.ThreadById(threadID)
 
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + id + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
@@ -97,7 +95,7 @@ func (tu *ThreadsUsecase) Detail(slug_or_id string) (*models.Thread, *errors.Err
 		thread, err = tu.threadsRepo.ThreadBySlug(slug_or_id)
 
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug_or_id + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
@@ -106,7 +104,7 @@ func (tu *ThreadsUsecase) Detail(slug_or_id string) (*models.Thread, *errors.Err
 		thread, err = tu.threadsRepo.ThreadById(threadID)
 
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug_or_id + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
@@ -122,7 +120,7 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 	if err != nil {
 		thread, err = tu.threadsRepo.ThreadBySlug(slug)
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
@@ -130,7 +128,7 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 	} else {
 		thread, err = tu.threadsRepo.ThreadById(threadID)
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
@@ -168,15 +166,16 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 	if err != nil {
 		thread, err = tu.threadsRepo.ThreadBySlug_FORUM_ID(slug)
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
 		}
 	} else {
 		thread, err = tu.threadsRepo.ThreadById_ID_FORUM_ID(threadID)
+
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find post thread by id: " + slug + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
@@ -194,8 +193,9 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 	}
 
 	posts, err = tu.threadsRepo.CreatePost(posts)
+
 	if err != nil {
-		fmt.Println(err)
+
 		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "00409" {
 			return nil , errors.ConflictErrorBody("Parent post was created in another thread")
 		}

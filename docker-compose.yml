@@ -4,7 +4,7 @@ version: '3'
 
 services:
   postgres:
-    image: postgres:13.2
+    image: postgres:12.2
     build:
       context: ./
       dockerfile: Dockerfile

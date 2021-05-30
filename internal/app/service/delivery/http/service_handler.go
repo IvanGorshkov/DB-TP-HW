@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/service"
@@ -36,7 +35,7 @@ func (sh *ServiceHandler) getStatus(w http.ResponseWriter, r *http.Request) {
 
 	err2 := json.NewEncoder(w).Encode(res)
 	if err2 != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
