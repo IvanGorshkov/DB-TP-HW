@@ -31,6 +31,7 @@ func (fh *ForumHandler) Configure(r *mux.Router) {
 }
 
 func (fh *ForumHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/forum/{slug}/users Get")
 	vars := mux.Vars(r)
 
 	limit, err := strconv.Atoi(string(r.FormValue("limit")))
@@ -76,6 +77,7 @@ func (fh *ForumHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (fh *ForumHandler) GetThreads(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/forum/{slug}/threads Get")
 	vars := mux.Vars(r)
 
 	limit, err := strconv.Atoi(string(r.FormValue("limit")))
@@ -121,6 +123,7 @@ func (fh *ForumHandler) GetThreads(w http.ResponseWriter, r *http.Request) {
 }
 
 func (fh *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/forum/{slug}/create POST")
 	threadModel := &models.Thread{}
 	err := json.NewDecoder(r.Body).Decode(&threadModel)
 	if err != nil {
@@ -169,6 +172,7 @@ func (fh *ForumHandler) CreateThread(w http.ResponseWriter, r *http.Request) {
 }
 
 func (fh *ForumHandler) detailsForum(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/forum/{slug}/details GET")
 	vars := mux.Vars(r)
 	res, err2 := fh.forumUsecase.Detail(vars["slug"])
 	if  err2 != nil {
@@ -198,6 +202,8 @@ func (fh *ForumHandler) detailsForum(w http.ResponseWriter, r *http.Request) {
 }
 
 func (fh *ForumHandler) createForum(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/forum/create POST")
+
 	forumModel := &models.Forum{}
 	err := json.NewDecoder(r.Body).Decode(&forumModel)
 	if err != nil {

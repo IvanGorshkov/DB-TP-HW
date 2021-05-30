@@ -29,6 +29,7 @@ func (ph *PostHandler) Configure(r *mux.Router) {
 }
 
 func (ph *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/post/{id}/details POST")
 	postID, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		fmt.Println(err)
@@ -66,6 +67,7 @@ func (ph *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ph *PostHandler) Detail(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/post/{id}/details GET")
 	postID, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		fmt.Println(err)

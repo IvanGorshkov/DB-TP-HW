@@ -113,20 +113,7 @@ func(fr *ForumRepository) GetThreadsByParams(forumSlug, since, desc string, limi
 }
 
 func(fr *ForumRepository) ThreadCreate(thread *models.Thread) (*models.Thread, error) {
-    
-     /* var thread_409 = &models.Thread{}
 
-    //TODO проверять в тригере 
-     err := fr.dbConn.QueryRow(`SELECT slug from thread where slug = $1`,thread.Slug).Scan(&thread_409.Slug)
-    
-    
-    if thread_409.Slug != "" {
-        fr.dbConn.QueryRow(`SELECT id, title, author, forum, message, created, slug from thread where slug = $1`,thread.Slug).Scan(
-            &thread_409.Id, &thread_409.Title, &thread_409.Author, &thread_409.Forum, &thread_409.Message, &thread_409.Created, &thread_409.Slug)
-        
-        return thread_409, errors.New("409")
-    } */
-    
     tx, err := fr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
     if err != nil {
         return nil, err

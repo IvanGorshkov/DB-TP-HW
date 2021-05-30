@@ -29,6 +29,7 @@ func (uh *UserHandler) Configure(r *mux.Router) {
 }
 
 func (uh *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/user/{nickname}/profile get")
 	vars := mux.Vars(r)
 	usr, err2 := uh.userUsecase.GetProfile(vars["nickname"])
 	if  err2 != nil {
@@ -58,6 +59,7 @@ func (uh *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
 
 
 func (uh *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/user/{nickname}/profile post")
 	userModel := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(&userModel)
 	if err != nil {
@@ -94,6 +96,7 @@ func (uh *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/user/{nickname}/create post")
 	userModel := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(&userModel)
 	if err != nil {

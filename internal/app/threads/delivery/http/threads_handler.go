@@ -33,6 +33,7 @@ func (th *ThreadsHandler) Configure(r *mux.Router) {
 
 
 func (th *ThreadsHandler) Update(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/thread/{slug_or_id}/details Post")
 	vars := mux.Vars(r)
 	var thread = models.Thread{}
 	err := json.NewDecoder(r.Body).Decode(&thread)
@@ -65,6 +66,8 @@ func (th *ThreadsHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (th *ThreadsHandler) ViewPosts(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/thread/{slug_or_id}/posts Get")
+
 	vars := mux.Vars(r)
 
 	limit, err := strconv.Atoi(string(r.FormValue("limit")))
@@ -114,6 +117,7 @@ func (th *ThreadsHandler) ViewPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (th *ThreadsHandler) Detail(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/thread/{slug_or_id}/details Get")
 	vars := mux.Vars(r)
 	res, err2 := th.threadsUsecase.Detail(vars["slug_or_id"])
 	if err2 != nil {
@@ -144,6 +148,7 @@ func (th *ThreadsHandler) Detail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (th *ThreadsHandler) Vote(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/thread/{slug_or_id}/vote Post")
 	var vote = models.Vote{}
 	err := json.NewDecoder(r.Body).Decode(&vote)
 	if err != nil {
@@ -181,6 +186,7 @@ func (th *ThreadsHandler) Vote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("/thread/{slug}/create Post")
 	posts := make([]*models.Post, 0)
 	err := json.NewDecoder(r.Body).Decode(&posts)
 	if err != nil {

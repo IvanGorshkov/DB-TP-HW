@@ -1,4 +1,4 @@
-GRANT ALL PRIVILEGES ON database formdb TO postgres;
+GRANT ALL PRIVILEGES ON database formdb TO docker;
 CREATE EXTENSION IF NOT EXISTS citext;
 
 create table if not exists users
@@ -206,6 +206,7 @@ EXECUTE PROCEDURE update_user_forum();
 CREATE INDEX if not exists user_nickname_index  ON users using hash (nickname);
 CREATE INDEX if not exists user_email_index     ON users using hash (email);
 
+CREATE INDEX if not exists index_forums         ON forum (slug, title, user_nickname, post_count, thread_count);
 CREATE INDEX if not exists forum_slug_index     ON forum using hash (slug);
 
 create unique index if not exists forum_users_unique_index on users_forum (slug, nickname);

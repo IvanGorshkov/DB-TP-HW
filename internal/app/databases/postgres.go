@@ -34,4 +34,6 @@ func (p *Postgres) Close() {
 
 func GetPostgresConfig() string {
 	return "host=localhost port=5432 user=postgres password=postgres dbname=formdb sslmode=disable"
+
+//	return "host=localhost port=5432 user=docker password=docker dbname=docker sslmode=disable"
 }
