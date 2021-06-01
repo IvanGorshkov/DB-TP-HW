@@ -7,5 +7,6 @@ import (
 
 
 type ServiceUsecase interface {
-	getStatus() (*models.Status, *errors.Error)
+	GetStatus() (*models.Status, *errors.Error)
+	Clear() (*errors.Error)
 }

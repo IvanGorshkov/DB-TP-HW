@@ -33,7 +33,7 @@ import(
 func main() {
 	postgresDB, err := databases.NewPostgres(databases.GetPostgresConfig())
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 
@@ -45,14 +45,16 @@ func main() {
 	userUsecase := userUsecase.NewUserUsecase(userRepo)
 	userHandler := userHandler.NewUserHandler(userUsecase)
 
-	forumRepo := forumRepo.NewForumRepository(postgresDB.GetDatabase())
-	forumUsecase := forumUsecase.NewUserUsecase(forumRepo)
-	forumHandler := forumHandler.NewForumHandler(forumUsecase)
-
 
 	threadRepo := threadRepo.NewThreadsRepository(postgresDB.GetDatabase())
 	threadUsecase := threadUsecase.NewThreadsUsecase(threadRepo)
 	threadHandler := threadHandler.NewThreadsHandler(threadUsecase)
+
+	forumRepo := forumRepo.NewForumRepository(postgresDB.GetDatabase())
+	forumUsecase := forumUsecase.NewUserUsecase(forumRepo, threadRepo)
+	forumHandler := forumHandler.NewForumHandler(forumUsecase)
+
+
 	
 	postRepo := postRepo.NewPostRepository(postgresDB.GetDatabase())
 	postUsecase := postUsecase.NewThreadsUsecase(postRepo, userRepo, forumRepo, threadRepo)

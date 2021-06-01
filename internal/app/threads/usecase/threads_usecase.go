@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"database/sql"
-	"fmt"
 	"strconv"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
@@ -25,21 +23,33 @@ func NewThreadsUsecase(repo threads.ThreadsRepository) threads.ThreadsUsecase {
 func (tu *ThreadsUsecase) Update(thread *models.Thread, slug string) (*models.Thread, *errors.Error) {
 	threadID, err := strconv.Atoi(slug)
 	if err != nil {
-		thread, err = tu.threadsRepo.UpdateBySlug(thread,slug)
+		_, err = tu.threadsRepo.ThreadBySlug(slug)
 
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
 		}
+
+		thread, err = tu.threadsRepo.UpdateBySlug(thread,slug)
+		if err != nil {
+			return nil, errors.UnexpectedInternal(err)
+		}
+
 	} else {
-		thread, err = tu.threadsRepo.UpdateById(thread, threadID)
+		_, err = tu.threadsRepo.ThreadById(threadID)
 
 		if err != nil {
-			if err == sql.ErrNoRows  {
-				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
-			}
+				if err == pgx.ErrNoRows  {
+					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
+				}
+			return nil, errors.UnexpectedInternal(err)
+		}
+
+
+		thread, err = tu.threadsRepo.UpdateById(thread, threadID)
+		if err != nil {
 			return nil, errors.UnexpectedInternal(err)
 		}
 	}
@@ -51,19 +61,19 @@ func (tu *ThreadsUsecase) ViewPosts(id, sort, desc, since string, limit int) ([]
 	threadID, err := strconv.Atoi(id)
 	var thread = &models.Thread{}
 	if err != nil {
-		thread, err = tu.threadsRepo.ThreadBySlug(id)
+		thread, err = tu.threadsRepo.ThreadBySlug_FORUM_ID(id)
 
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + id + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
 		}
 	} else {
-		thread, err = tu.threadsRepo.ThreadById(threadID)
+		thread, err = tu.threadsRepo.ThreadById_ID_FORUM_ID(threadID)
 
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + id + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
@@ -85,7 +95,7 @@ func (tu *ThreadsUsecase) Detail(slug_or_id string) (*models.Thread, *errors.Err
 		thread, err = tu.threadsRepo.ThreadBySlug(slug_or_id)
 
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug_or_id + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
@@ -94,7 +104,7 @@ func (tu *ThreadsUsecase) Detail(slug_or_id string) (*models.Thread, *errors.Err
 		thread, err = tu.threadsRepo.ThreadById(threadID)
 
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug_or_id + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
@@ -110,7 +120,7 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 	if err != nil {
 		thread, err = tu.threadsRepo.ThreadBySlug(slug)
 		if err != nil {
-				if err == sql.ErrNoRows  {
+				if err == pgx.ErrNoRows  {
 					return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 				}
 			return nil, errors.UnexpectedInternal(err)
@@ -118,14 +128,13 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 	} else {
 		thread, err = tu.threadsRepo.ThreadById(threadID)
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
 		}
 	}
 	vote.Thread = int(thread.Id)
-	
 	err = tu.threadsRepo.Vote(vote)
 	if err != nil {
 		if err.(pgx.PgError).Code == "23503" {
@@ -134,11 +143,11 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 		if err.(pgx.PgError).Code == "23505" {
 			err = tu.threadsRepo.UpdateVote(vote)
 			if err != nil {
-				if vote.Votes < 0 {
-					thread.Votes += 2 * int32(vote.Votes);
-				} else {
-					thread.Votes += int32(vote.Votes);
+				thread2, err2 := tu.threadsRepo.ThreadById(vote.Thread)
+				if err2 != nil {
+					return nil, errors.UnexpectedInternal(err2)
 				}
+				return thread2, nil
 			} 
 
 			return thread, nil
@@ -155,19 +164,18 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 	threadID, err := strconv.Atoi(slug)
 	var thread = &models.Thread{}
 	if err != nil {
-		thread, err = tu.threadsRepo.ThreadBySlug(slug)
-		fmt.Println(err, ' ', thread)
+		thread, err = tu.threadsRepo.ThreadBySlug_FORUM_ID(slug)
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find thread by slug: " + slug + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
 		}
 	} else {
-		thread, err = tu.threadsRepo.ThreadById(threadID)
-		fmt.Println(err, ' ', thread)
+		thread, err = tu.threadsRepo.ThreadById_ID_FORUM_ID(threadID)
+
 		if err != nil {
-			if err == sql.ErrNoRows  {
+			if err == pgx.ErrNoRows  {
 				return nil, errors.NotFoundBody("Can't find post thread by id: " + slug + "\n" )
 			}
 			return nil, errors.UnexpectedInternal(err)
@@ -185,15 +193,18 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 	}
 
 	posts, err = tu.threadsRepo.CreatePost(posts)
-	fmt.Println(err)
+
 	if err != nil {
-		if err.Error() == "409" {
+
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "00409" {
 			return nil , errors.ConflictErrorBody("Parent post was created in another thread")
 		}
 
-		if err.Error() == "404" {
-			return nil, errors.NotFoundBody(`Can't find post author by nickname: \n`)
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23503" {
+			return nil, errors.NotFoundBody("Can't find user with nickname " + thread.Author + "\n")
 		}
+
+
 	}
 	return posts, nil
 }

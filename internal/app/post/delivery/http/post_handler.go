@@ -2,11 +2,11 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/post"
 	"github.com/gorilla/mux"
@@ -28,9 +28,10 @@ func (ph *PostHandler) Configure(r *mux.Router) {
 }
 
 func (ph *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
+
 	postID, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		fmt.Println(err)
+
 	}
 
 	var post = models.Post{}
@@ -41,26 +42,50 @@ func (ph *PostHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	res, err2 := ph.postUsecase.Update(postID, post)
 	if err2 != nil {
+		if err2.ErrorCode == errors.NotFoundError {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
+			messagee := errors.Message{ Message: err2.Message}
+			err := json.NewEncoder(w).Encode(messagee)
+			if err != nil {
+
+			}
+			return
+		}
+
 		return
 	}
+	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
 
 func (ph *PostHandler) Detail(w http.ResponseWriter, r *http.Request) {
+
 	postID, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		fmt.Println(err)
+
 	}
 	array := strings.Split(r.FormValue("related"), ",") 
 
 	res, err2 := ph.postUsecase.Detail(postID, array)
 	if err2 != nil {
+		if err2.ErrorCode == errors.NotFoundError {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(err2.HttpError)
+			messagee := errors.Message{ Message: err2.Message}
+			err := json.NewEncoder(w).Encode(messagee)
+			if err != nil {
+
+			}
+			return
+		}
+
 		return
 	}
 
@@ -68,7 +93,7 @@ func (ph *PostHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }

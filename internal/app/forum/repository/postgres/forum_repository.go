@@ -1,32 +1,30 @@
 package repository
 
 import (
-    "context"
-    "database/sql"
     "errors"
     "fmt"
+    "github.com/go-openapi/strfmt"
+    "github.com/jackc/pgx"
+    "time"
 
     "github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
     "github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 )
 
 type ForumRepository struct {
-    dbConn *sql.DB
+    dbConn *pgx.ConnPool
 }
 
-func NewForumRepository(conn *sql.DB) forum.ForumRepository {
+func NewForumRepository(conn *pgx.ConnPool) forum.ForumRepository {
     return &ForumRepository{
         dbConn: conn,
     }
 }
 
- /****
-
-****/
 func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit int) ([]*models.User, error) {
 	query := `SELECT u.nickname, u.email, u.fullname, u.about from users_forum
     join users u on users_forum.nickname = u.nickname
-    where LOWER(slug) = LOWER($1) `
+    where slug = $1 `
 
 	if since != "" && desc == "true" {
 		query += fmt.Sprintf(` and CAST(LOWER(u.nickname) AS bytea) < CAST(LOWER('%s') AS bytea)`, since)
@@ -46,9 +44,9 @@ func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit i
 	query += " LIMIT NULLIF($2, 0)"
 
     q, err := fr.dbConn.Query(query, forumSlug, limit)
-
+    defer  q.Close()
     if err != nil {
-        fmt.Println(err)
+
         return nil, err
     }
 	users := make([]*models.User, 0)
@@ -67,7 +65,7 @@ func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit i
 
 func(fr *ForumRepository) GetThreadsByParams(forumSlug, since, desc string, limit int) ([]*models.Thread, error) {
     query := `SELECT t.id, t.title, t.author, t.forum, t.message, t.votes, t.slug, t.created from thread as t
-    LEFT JOIN forum f on t.forum = f.slug where LOWER(f.slug) = LOWER($1)`
+    LEFT JOIN forum f on t.forum = f.slug where f.slug = $1`
 
     if since != "" && desc == "true" {
         query += " and t.created <= $2"
@@ -95,20 +93,24 @@ func(fr *ForumRepository) GetThreadsByParams(forumSlug, since, desc string, limi
     }
 
     q, err := fr.dbConn.Query(query, args...)
+    defer q.Close()
     if err != nil {
-        fmt.Println(err)
+
         return nil, err
     }
 
     threads := make([]*models.Thread, 0)
     for q.Next() {
         thread := &models.Thread{}
+        var created time.Time
         err = q.Scan(&thread.Id, &thread.Title,
             &thread.Author, &thread.Forum, &thread.Message, &thread.Votes,
-            &thread.Slug, &thread.Created)
+            &thread.Slug, &created)
             if err != nil {
                 return nil, err
             }
+
+        thread.Created = strfmt.DateTime(created.UTC()).String()
         threads = append(threads, thread)
     }
 
@@ -116,55 +118,20 @@ func(fr *ForumRepository) GetThreadsByParams(forumSlug, since, desc string, limi
 }
 
 func(fr *ForumRepository) ThreadCreate(thread *models.Thread) (*models.Thread, error) {
-    var isFind = false
-    err := fr.dbConn.QueryRow(`
-    select case when EXISTS (
-        select 1 
-        from users
-        where LOWER(nickname) = LOWER($1)
-        ) then TRUE else FALSE end`, thread.Author).Scan(&isFind)
-    if err != nil {
-        return nil, err
-    }
 
-    if isFind == false {
-        return nil, errors.New("404")
-    }
-    
-    var thread_409 = &models.Thread{}
-
-    err = fr.dbConn.QueryRow(`SELECT id, title, author, forum, message, created, slug from thread where LOWER(slug) = LOWER($1)`,thread.Slug).Scan(
-        &thread_409.Id, &thread_409.Title, &thread_409.Author, &thread_409.Forum, &thread_409.Message, &thread_409.Created, &thread_409.Slug)
-    
-    
-    if thread_409.Slug != "" {
-        return thread_409, errors.New("409")
-    }
-
-    var slug string
-    err = fr.dbConn.QueryRow(`SELECT slug from forum where LOWER(slug) = LOWER($1)`,thread.Forum).Scan(&slug)
-
-    if slug == "" {
-        return nil, errors.New("404")
-    }
-
-    thread.Forum = slug
-
-
-    
-    tx, err := fr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
+    tx, err := fr.dbConn.Begin()
     if err != nil {
         return nil, err
     }
 
     if thread.Created == "" {
         err = tx.QueryRow(`
-            INSERT INTO thread (title, author, forum, message, slug) VALUES ($1, $2, $3, $4, $5) returning id
-        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Slug).Scan(&thread.Id) 
+            INSERT INTO thread (title, author, forum, message, slug) VALUES ($1, $2, (SELECT slug from forum where slug = $3), $4, $5) returning id, forum
+        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Slug).Scan(&thread.Id, &thread.Forum) 
     } else {
         err = tx.QueryRow(`
-            INSERT INTO thread (title, author, forum, message, created, slug) VALUES ($1, $2, $3, $4, $5, $6) returning id
-        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Created, thread.Slug).Scan(&thread.Id) 
+            INSERT INTO thread (title, author, forum, message, created, slug) VALUES ($1, $2, (SELECT slug from forum where slug = $3), $4, $5, $6) returning id, forum
+        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Created, thread.Slug).Scan(&thread.Id, &thread.Forum) 
     }
 
     if err != nil {
@@ -172,6 +139,7 @@ func(fr *ForumRepository) ThreadCreate(thread *models.Thread) (*models.Thread, e
         if rollbackErr != nil {
             return nil, rollbackErr
         }
+        return nil, err
     }
 
     err = tx.Commit()
@@ -187,7 +155,7 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
     select case when EXISTS (
         select 1 
         from users
-        where LOWER(nickname) = LOWER($1)
+        where nickname = $1
         ) then TRUE else FALSE end`, forum.User).Scan(&isFind)
     if err != nil {
         return nil, err
@@ -197,7 +165,7 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
         return nil, errors.New("404")
     }
     
-    queryForum, err := fr.dbConn.Query(`SELECT title, nickname, slug, post, threads from forum where LOWER(slug) = LOWER($1)`,forum.Slug)
+    queryForum, err := fr.dbConn.Query(`SELECT title, nickname, slug, post, threads from forum where slug = $1`,forum.Slug)
     if err != nil {
         return nil, err
     }
@@ -214,9 +182,9 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
     }
     
     var user string;
-    err = fr.dbConn.QueryRow(`SELECT nickname from users where LOWER(nickname) = LOWER($1)`,forum.User).Scan(&user)
+    err = fr.dbConn.QueryRow(`SELECT nickname from users where nickname = $1`,forum.User).Scan(&user)
     forum.User = user
-    tx, err := fr.dbConn.BeginTx(context.Background(), &sql.TxOptions{})
+    tx, err := fr.dbConn.Begin()
     if err != nil {
         return nil, err
     }
@@ -232,6 +200,7 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
         if rollbackErr != nil {
             return nil, rollbackErr
         }
+        return nil, err
     }
 
     err = tx.Commit()
@@ -243,10 +212,10 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
 
 func (fr *ForumRepository) Detail(slug string) (*models.Forum, error) {
     var forum models.Forum
-    err := fr.dbConn.QueryRow(`SELECT title, nickname, slug, post, threads from forum where LOWER(slug) = LOWER($1)`, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
+    err := fr.dbConn.QueryRow(`SELECT title, nickname, slug, post, threads from forum where slug = $1`, slug).Scan(&forum.Title, &forum.User, &forum.Slug, &forum.Posts, &forum.Threads)
     if err != nil {
-        if err == sql.ErrNoRows {
-            return nil, sql.ErrNoRows 
+        if err == pgx.ErrNoRows {
+            return nil, pgx.ErrNoRows
         }
         return nil, err
     }

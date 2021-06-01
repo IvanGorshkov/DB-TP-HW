@@ -1,30 +1,38 @@
 package databases
 
 import (
-	"database/sql"
+	"fmt"
+	"github.com/jackc/pgx"
 	_ "github.com/jackc/pgx/stdlib"
 )
 
 type Postgres struct {
-	postgresDatabase *sql.DB
+	postgresDatabase *pgx.ConnPool
 }
 
 func NewPostgres(dataSourceName string) (*Postgres, error) {
-	sqlConn, err := sql.Open("pgx", dataSourceName)
+	pgxConnConfig, err := pgx.ParseConnectionString(dataSourceName)
 	if err != nil {
-		return nil, err
+		fmt.Println(err.Error())
 	}
+	pgxConnConfig.PreferSimpleProtocol = true
 
-	if err := sqlConn.Ping(); err != nil {
-		return nil, err
+	poolConfig := pgx.ConnPoolConfig{
+		ConnConfig:     pgxConnConfig,
+		MaxConnections: 200,
+		AfterConnect:   nil,
+		AcquireTimeout: 0,
 	}
-
+	pool, err := pgx.NewConnPool(poolConfig)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	return &Postgres{
-		postgresDatabase: sqlConn,
+		postgresDatabase: pool,
 	}, nil
 }
 
-func (p *Postgres) GetDatabase() *sql.DB {
+func (p *Postgres) GetDatabase() *pgx.ConnPool {
 	return p.postgresDatabase
 }
 
@@ -33,5 +41,7 @@ func (p *Postgres) Close() {
 }
 
 func GetPostgresConfig() string {
-	return "host=localhost port=5432 user=postgres password=postgres dbname=formdb sslmode=disable"
+//	return "host=localhost port=5432 user=postgres password=postgres dbname=formdb sslmode=disable"
+
+	return "host=localhost port=5432 user=docker password=docker dbname=docker sslmode=disable"
 }

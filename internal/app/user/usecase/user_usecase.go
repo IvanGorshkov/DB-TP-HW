@@ -1,10 +1,11 @@
 package usecase
 
 import (
-	"database/sql"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/user"
+
+	"github.com/jackc/pgx"
 )
 
 type UserUsecase struct {
@@ -32,21 +33,23 @@ func(us *UserUsecase) Create(user *models.User) ([]*models.User, *errors.Error) 
 func(us *UserUsecase) GetProfile(nickname string) (*models.User, *errors.Error) {
 	res, err := us.userRepo.GetProfile(nickname)
 	if err != nil {
-		return nil, errors.UnexpectedInternal(err)
-	}
+		if err == pgx.ErrNoRows {
+			return nil, errors.NotFoundBody("Can't find user with nickname " + nickname + "\n")
+		}
 
-	if res == nil {
-		return nil, errors.NotFoundBody("Can't find user with nickname " + nickname + "\n")
+		return nil, errors.UnexpectedInternal(err)
 	}
 	return res, nil
 }
 
 func(us *UserUsecase) UpdateProfile(user *models.User) (*models.User, *errors.Error) {
 	res, err := us.userRepo.UpdateProfile(user)
-	if err == sql.ErrNoRows {
+
+	if err == pgx.ErrNoRows {
 		return nil, errors.NotFoundBody("Can't find user with nickname " + user.Nickname + "\n")
 	}
-	if err != nil {
+
+	if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23505" {
 		return nil, errors.ConflictErrorBody("This email is already registered by user: " + err.Error()+ "\n")
 	}
 	return res, nil

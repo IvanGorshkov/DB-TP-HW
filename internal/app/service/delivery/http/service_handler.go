@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/service"
@@ -20,23 +19,35 @@ func NewServiceHandler(serviceUsecase service.ServiceUsecase) *ServiceHandler {
 }
 
 
-func (sh *ServiceHandler) Configure(r *mux.Router) {
+func (sh *ServiceHandler) Configure(r *mux.Router) { 
 	r.HandleFunc("/service/status", sh.getStatus).Methods(http.MethodGet)
+	r.HandleFunc("/service/clear", sh.clear).Methods(http.MethodPost)
 }
 
 func (sh *ServiceHandler) getStatus(w http.ResponseWriter, r *http.Request) {
-	res, err := sh.serviceUsecase.getStatus()
+	res, err := sh.serviceUsecase.GetStatus()
 
 	if err != nil {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	jData, err := json.Marshal(res)
-	if err != nil {
-		fmt.Println(err)
+
+	err2 := json.NewEncoder(w).Encode(res)
+	if err2 != nil {
+
 		return
 	}
-
-	w.Write(jData)
 }
+
+
+func (sh *ServiceHandler) clear(w http.ResponseWriter, r *http.Request) {
+	err := sh.serviceUsecase.Clear()
+
+   if err != nil {
+	   return
+   }
+   w.Header().Set("Content-Type", "application/json")
+   w.WriteHeader(http.StatusOK)
+}
+

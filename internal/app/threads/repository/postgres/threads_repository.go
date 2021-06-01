@@ -4,17 +4,21 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/go-openapi/strfmt"
+	"github.com/jackc/pgx"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/threads"
 )
 
 type ThreadsRepository struct {
-	dbConn *sql.DB
+	dbConn *pgx.ConnPool
 }
 
-func NewThreadsRepository(conn *sql.DB) threads.ThreadsRepository {
+func NewThreadsRepository(conn *pgx.ConnPool) threads.ThreadsRepository {
 	return &ThreadsRepository{
 		dbConn: conn,
 	}
@@ -22,35 +26,49 @@ func NewThreadsRepository(conn *sql.DB) threads.ThreadsRepository {
 
 func (tr *ThreadsRepository) UpdateById(thread *models.Thread, id int) (*models.Thread, error) {
 	var new_thread models.Thread
-	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE id = $3 RETURNING *`
-	tr.dbConn.QueryRow(query, thread.Title, thread.Message, id).Scan(
+	var created time.Time
+
+	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE id = $3 RETURNING 
+	id, title, author, forum, message, votes, created, slug`
+	err := tr.dbConn.QueryRow(query, thread.Title, thread.Message, id).Scan(
 		&new_thread.Id,
 		&new_thread.Title,
 		&new_thread.Author,
 		&new_thread.Forum,
 		&new_thread.Message,
 		&new_thread.Votes,
-		&new_thread.Created,
+		&created,
 		&new_thread.Slug,
 	)
 
+	if err != nil {
+		return nil, err
+	}
+
+	new_thread.Created = strfmt.DateTime(created.UTC()).String()
 	return &new_thread, nil
 }
 
 func (tr *ThreadsRepository) UpdateBySlug(thread *models.Thread, slug string) (*models.Thread, error) {
 	var new_thread models.Thread
-	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE LOWER(slug) = LOWER($3) RETURNING *`
-	tr.dbConn.QueryRow(query, thread.Title, thread.Message, slug).Scan(
+	var created time.Time
+	query := `UPDATE thread SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE slug = $3 RETURNING 
+	id, title, author, forum, message, votes, created, slug`
+	err := tr.dbConn.QueryRow(query, thread.Title, thread.Message, slug).Scan(
 		&new_thread.Id,
 		&new_thread.Title,
 		&new_thread.Author,
 		&new_thread.Forum,
 		&new_thread.Message,
 		&new_thread.Votes,
-		&new_thread.Created,
+		&created,
 		&new_thread.Slug,
 	)
+	if err != nil {
+		return nil, err
+	}
 
+	new_thread.Created = strfmt.DateTime(created.UTC()).String()
 	return &new_thread, nil
 }
 
@@ -66,8 +84,6 @@ func FormQueryFlatSort(limit, threadID int, sort, since string, desc bool) strin
 	}
 	if desc {
 		query += " ORDER BY created desc, id desc"
-	} else if !desc {
-		query += " ORDER BY created asc, id"
 	} else {
 		query += " ORDER BY created, id"
 	}
@@ -121,6 +137,7 @@ func FormQueryParentTreeSort(limit, threadID int, sort, since string, desc bool)
 	return query
 }
 
+
 func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) ([]*models.Post, error) {
 	postID, _ := strconv.Atoi(since)
 	var desc_b bool
@@ -141,7 +158,7 @@ func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) 
 	if sort == "parent_tree" {
 		query = FormQueryParentTreeSort(limit, id, sort, since, desc_b)
 	}
-	var rows *sql.Rows
+	var rows *pgx.Rows
 	var err error
 
 	if since != "" {
@@ -159,7 +176,7 @@ func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) 
 	}
 
 	if err != nil {
-		fmt.Println(err)
+
 		return nil, err
 	}
 	defer rows.Close()
@@ -167,14 +184,16 @@ func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) 
 	var parent sql.NullInt64
 	for rows.Next() {
 		post := &models.Post{}
-		err = rows.Scan(&post.ID, &parent, &post.Author, &post.Message,
-			&post.IsEdited, &post.Forum, &post.Thread, &post.Created)
 
+		var created time.Time
+		err = rows.Scan(&post.ID, &parent, &post.Author, &post.Message,
+			&post.IsEdited, &post.Forum, &post.Thread, &created)
+		post.Created = strfmt.DateTime(created.UTC()).String()
 		if parent.Valid {
 			post.Parent = int(parent.Int64)
 		}
 		if err != nil {
-			fmt.Println(err)
+
 		}
 		posts = append(posts, post)
 	}
@@ -184,7 +203,7 @@ func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) 
 func (tr *ThreadsRepository) UpdateVote(vote *models.Vote) (error) {
 	res, _ := tr.dbConn.Exec(`UPDATE votes set voice = $1 where nickname = $2 and thread = $3 and voice !=  $1`,vote.Votes, vote.Nickname, vote.Thread)
 
-	count, _ := res.RowsAffected()
+	count := res.RowsAffected()
 	if count != 1 {
 		return nil
 	} 
@@ -203,76 +222,92 @@ func (tr *ThreadsRepository) Vote(vote *models.Vote) (error) {
 
 func (tr *ThreadsRepository) ThreadById(id int) (*models.Thread, error) {
 	var thread models.Thread
-	err := tr.dbConn.QueryRow(`SELECT slug, id, forum, title, author, message, votes, created from thread where id = $1`, id).Scan(&thread.Slug, &thread.Id, &thread.Forum, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &thread.Created)
+	var created time.Time
+	err := tr.dbConn.QueryRow(`SELECT slug, id, forum, title, author, message, votes, created from thread where id = $1`, id).Scan(&thread.Slug, &thread.Id, &thread.Forum, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &created)
+	thread.Created = strfmt.DateTime(created.UTC()).String()
 	if err != nil {
 		return nil, err
 	}
 	return &thread, nil
+}
 
+func (tr *ThreadsRepository) ThreadBySlug_FORUM_ID(slug string) (*models.Thread, error) {
+	var thread models.Thread
+	err := tr.dbConn.QueryRow(`SELECT id, forum from thread where slug = $1`, slug).Scan(&thread.Id, &thread.Forum)
+	if err != nil {
+		return nil, err
+	}
+	return &thread, nil
+}
+
+func (tr *ThreadsRepository) ThreadById_ID_FORUM_ID(id int) (*models.Thread, error) {
+	var thread models.Thread
+	err := tr.dbConn.QueryRow(`SELECT id, forum from thread where id = $1`, id).Scan(&thread.Id, &thread.Forum)
+	if err != nil {
+		return nil, err
+	}
+	return &thread, nil
 }
 
 
 func (tr *ThreadsRepository) ThreadBySlug(slug string) (*models.Thread, error) {
 	var thread models.Thread
-	err := tr.dbConn.QueryRow(`SELECT slug, id, forum, title, author, message, votes, created from thread where LOWER(slug) = LOWER($1)`, slug).Scan(&thread.Slug, &thread.Id, &thread.Forum, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &thread.Created)
+
+	var created time.Time
+	err := tr.dbConn.QueryRow(`SELECT slug, id, forum, title, author, message, votes, created from thread where slug = $1`, slug).Scan(&thread.Slug, &thread.Id, &thread.Forum, &thread.Title, &thread.Author, &thread.Message, &thread.Votes, &created)
+ 	thread.Created = strfmt.DateTime(created.UTC()).String()
 	if err != nil {
 		return nil, err
 	}
 	return &thread, nil
 }
 
-func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, error) {
 
-	for _, post := range posts {
-		parent_thread := 0
-		nickname := ""
-		if post.Parent != 0 {
-			tr.dbConn.QueryRow(`SELECT thread from posts where id = $1`, post.Parent).Scan(&parent_thread)
-			if parent_thread != post.Thread {
-				return nil, errors.New("409")
+func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, error) {
+	query := `INSERT INTO posts(parent, author, forum, message, thread) VALUES `
+	var posts2 []*models.Post
+	posts2 = append(posts2, posts...)
+	var values []interface{}
+	for i, post := range posts2 {
+		value := fmt.Sprintf(
+			"(NULLIF($%d, 0), $%d, $%d, $%d, $%d),",
+			i * 5 + 1, i * 5 + 2, i * 5 + 3, i * 5 + 4, i * 5 + 5,
+		)
+
+		query += value
+		values = append(values, post.Parent)
+		values = append(values, post.Author)
+		values = append(values, post.Forum)
+		values = append(values, post.Message)
+		values = append(values, post.Thread)
+	}
+
+	query = strings.TrimSuffix(query, ",")
+
+	query += " returning id, created;"
+
+
+	res, err2 := tr.dbConn.Query(query, values...)
+	defer res.Close()
+	if err2 != nil {
+        return nil, err2
+    }
+
+	for i, _ := range posts2 {
+		if res.Next() {
+			var created time.Time
+			err := res.Scan(&(posts2)[i].ID, &created)
+			posts2[i].IsEdited = false
+			posts2[i].Created = strfmt.DateTime(created.UTC()).String()
+			if err != nil {
+				return nil, err
 			}
 		}
-
-		tr.dbConn.QueryRow(`SELECT nickname from users where nickname = $1`, post.Author).Scan(&nickname)
-		if nickname == "" {
-			return nil, errors.New("404")
-		}
-		nickname = ""
+	}
+	if res.Err() != nil {
+		return nil, res.Err()
 	}
 
-	query := `INSERT INTO posts (parent, author, message, forum, thread)
-			VALUES `
-	for i, post := range posts {
-		if i != 0 {
-			query += ", "
-		}
-		query += fmt.Sprintf("(NULLIF(%d, 0), '%s', '%s', '%s', %d)", post.Parent, post.Author,
-			post.Message, post.Forum, post.Thread)
-	}
-	query += " returning id, parent, author, message, is_edited, forum, thread, created"
-	res, err := tr.dbConn.Query(query)
-	
-	if err != nil {
-		return nil, err
-	}
-	newPosts := make([]*models.Post, 0)
-	var parent sql.NullInt64
-	defer res.Close()
-	for res.Next() {
-		post := &models.Post{}
-		err = res.Scan(&post.ID, &parent, &post.Author, &post.Message,
-			&post.IsEdited, &post.Forum, &post.Thread, &post.Created)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if parent.Valid {
-			post.Parent = int(parent.Int64)
-		}
-		if err != nil {
-			return nil, err
-		}
-		newPosts = append(newPosts, post)
-	}
 
-	return newPosts, nil
+	return posts2, nil
 }

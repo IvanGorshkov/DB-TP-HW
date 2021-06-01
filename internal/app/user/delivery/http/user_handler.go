@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
@@ -29,6 +28,7 @@ func (uh *UserHandler) Configure(r *mux.Router) {
 }
 
 func (uh *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
+
 	vars := mux.Vars(r)
 	usr, err2 := uh.userUsecase.GetProfile(vars["nickname"])
 	if  err2 != nil {
@@ -41,7 +41,7 @@ func (uh *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -51,17 +51,18 @@ func (uh *UserHandler) getUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(usr)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
 
 
 func (uh *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+
 	userModel := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(&userModel)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 	vars := mux.Vars(r)
@@ -78,7 +79,7 @@ func (uh *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 			messagee := errors.Message{ Message: err2.Message}
 			err := json.NewEncoder(w).Encode(messagee)
 			if err != nil {
-				fmt.Println(err)
+
 			}
 			return
 		}
@@ -88,16 +89,17 @@ func (uh *UserHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(usr)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 }
 
 func (uh *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
+
 	userModel := &models.User{}
 	err := json.NewDecoder(r.Body).Decode(&userModel)
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 	vars := mux.Vars(r)
@@ -113,7 +115,7 @@ func (uh *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(err2.HttpError)
 			err = json.NewEncoder(w).Encode(usr)
 			if err != nil {
-				fmt.Println(err)
+
 				return
 			}
 			return
@@ -124,7 +126,7 @@ func (uh *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	jData, err := json.Marshal(usr[0])
 	if err != nil {
-		fmt.Println(err)
+
 		return
 	}
 
