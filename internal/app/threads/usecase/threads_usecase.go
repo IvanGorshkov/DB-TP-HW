@@ -61,7 +61,7 @@ func (tu *ThreadsUsecase) ViewPosts(id, sort, desc, since string, limit int) ([]
 	threadID, err := strconv.Atoi(id)
 	var thread = &models.Thread{}
 	if err != nil {
-		thread, err = tu.threadsRepo.ThreadBySlug(id)
+		thread, err = tu.threadsRepo.ThreadBySlug_FORUM_ID(id)
 
 		if err != nil {
 				if err == pgx.ErrNoRows  {
@@ -70,7 +70,7 @@ func (tu *ThreadsUsecase) ViewPosts(id, sort, desc, since string, limit int) ([]
 			return nil, errors.UnexpectedInternal(err)
 		}
 	} else {
-		thread, err = tu.threadsRepo.ThreadById(threadID)
+		thread, err = tu.threadsRepo.ThreadById_ID_FORUM_ID(threadID)
 
 		if err != nil {
 			if err == pgx.ErrNoRows  {
