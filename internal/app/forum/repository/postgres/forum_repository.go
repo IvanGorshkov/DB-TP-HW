@@ -27,18 +27,17 @@ func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit i
     where slug = $1 `
 
 	if since != "" && desc == "true" {
-		query += fmt.Sprintf(` and u.nickname < '%s'`, since)
+		query += fmt.Sprintf(` and CAST(LOWER(u.nickname) AS bytea) < CAST(LOWER('%s') AS bytea)`, since)
 	} else if since != "" {
-		query += fmt.Sprintf(` and u.nickname > '%s')`, since)
+		query += fmt.Sprintf(` and CAST(LOWER(u.nickname) AS bytea) > CAST(LOWER('%s') AS bytea)`, since)
 	}
 
-	
-	if desc == "true" {
-        query += ` order BY u.nickname desc`
+    if desc == "true" {
+        query += ` order BY CAST(LOWER(u.nickname) AS bytea) desc`
     } else if desc == "false" {
-        query += ` order BY u.nickname asc`
+        query += ` order BY CAST(LOWER(u.nickname) AS bytea) asc`
     } else {
-        query += ` order BY u.nickname asc`
+        query += ` order BY CAST(LOWER(u.nickname) AS bytea) asc`
     }
 
 	query += " LIMIT NULLIF($2, 0)"
