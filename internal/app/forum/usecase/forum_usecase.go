@@ -39,14 +39,15 @@ func(fu *FourmUsecase) GetUserByParams(forumSlug, since, desc string, limit int)
 }
 
 func(fu *FourmUsecase) GetThreadsByParams(forumSlug, since, desc string, limit int) ([]*models.Thread, *errors.Error) {
-	_, err := fu.forumRepo.Detail(forumSlug)
-	if err != nil {
-		return nil, errors.NotFoundBody("Can't find user with nickname " + forumSlug + "\n")
-	}
+	res, _ := fu.forumRepo.GetThreadsByParams(forumSlug, since, desc, limit)
+	if len(res) == 0 {
+		_, err := fu.forumRepo.Detail(forumSlug)
+		//fmt.Println(err)
+		if err != nil {
+			return nil, errors.NotFoundBody("Can't find user with nickname " + forumSlug + "\n")
+		}
 
-	res, err := fu.forumRepo.GetThreadsByParams(forumSlug, since, desc, limit) 
-	if err != nil {
-		return nil, errors.UnexpectedInternal(err)
+		return res,nil
 	}
 
 	return res, nil
