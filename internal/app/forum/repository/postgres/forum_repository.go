@@ -32,8 +32,7 @@ func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit i
 		query += fmt.Sprintf(` and CAST(LOWER(u.nickname) AS bytea) > CAST(LOWER('%s') AS bytea)`, since)
 	}
 
-	
-	if desc == "true" {
+    if desc == "true" {
         query += ` order BY CAST(LOWER(u.nickname) AS bytea) desc`
     } else if desc == "false" {
         query += ` order BY CAST(LOWER(u.nickname) AS bytea) asc`
