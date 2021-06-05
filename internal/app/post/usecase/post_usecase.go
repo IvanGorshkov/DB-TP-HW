@@ -6,30 +6,18 @@ import (
 	"strings"
 
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/errors"
-	"github.com/IvanGorshkov/DB-TP-HW/internal/app/forum"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/models"
 	"github.com/IvanGorshkov/DB-TP-HW/internal/app/post"
-	"github.com/IvanGorshkov/DB-TP-HW/internal/app/threads"
-	"github.com/IvanGorshkov/DB-TP-HW/internal/app/user"
 )
 
 type PostUsecase struct {
 	postRepository post.PostRepository
-	userRepository user.UserRepository
-	forumRepository forum.ForumRepository
-	threadsRepository threads.ThreadsRepository
 }
 
 func NewThreadsUsecase(
-	postRepository post.PostRepository,
-	userRepository user.UserRepository,
-	forumRepository forum.ForumRepository,
-	threadsRepository threads.ThreadsRepository) post.PostUsecase{
+	postRepository post.PostRepository) post.PostUsecase{
 	return &PostUsecase{
 		postRepository: postRepository,
-		userRepository: userRepository,
-		forumRepository: forumRepository,
-		threadsRepository: threadsRepository,
 	}
 }
 

@@ -8,10 +8,10 @@ type ThreadsRepository interface {
 	ThreadBySlug(slug string) (*models.Thread, error)
 	UpdateById(thread *models.Thread, id int) (*models.Thread, error)
 	UpdateBySlug(thread *models.Thread, slug string) (*models.Thread, error)
-	CreatePost(posts []*models.Post) ([]*models.Post, error) 
+	CreatePost(posts []models.Post) ([]models.Post, error)
 	Vote(vote *models.Vote) (error)
 	UpdateVote(vote *models.Vote) (error)
-	ViewPosts(sort, desc, since string, limit, id int) ([]*models.Post, error)
+	ViewPosts(sort, desc, since string, limit, id int) ([]models.Post, error)
 
 
 	ThreadBySlug_FORUM_ID(slug string) (*models.Thread, error)

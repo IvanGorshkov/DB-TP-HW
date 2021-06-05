@@ -57,7 +57,7 @@ func (tu *ThreadsUsecase) Update(thread *models.Thread, slug string) (*models.Th
 	return thread, nil
 }
 
-func (tu *ThreadsUsecase) ViewPosts(id, sort, desc, since string, limit int) ([]*models.Post, *errors.Error) {
+func (tu *ThreadsUsecase) ViewPosts(id, sort, desc, since string, limit int) ([]models.Post, *errors.Error) {
 	threadID, err := strconv.Atoi(id)
 	var thread = &models.Thread{}
 	if err != nil {
@@ -159,7 +159,7 @@ func (tu *ThreadsUsecase) VoteByIdOrSlag(vote *models.Vote, slug string) (*model
 	return thread, nil
 }
 
-func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*models.Post, *errors.Error) {
+func (tu *ThreadsUsecase) CreatePost(posts []models.Post, slug string) ([]models.Post, *errors.Error) {
 
 	threadID, err := strconv.Atoi(slug)
 	var thread = &models.Thread{}
@@ -186,14 +186,14 @@ func (tu *ThreadsUsecase) CreatePost(posts []*models.Post, slug string) ([]*mode
 		return posts, nil
 	}
 
-	
-	for _, post := range posts {
-		post.Thread = int(thread.Id)
-		post.Forum = thread.Forum
+
+
+	for i, _ := range posts {
+		posts[i].Thread = int(thread.Id)
+		posts[i].Forum = thread.Forum
 	}
 
 	posts, err = tu.threadsRepo.CreatePost(posts)
-
 	if err != nil {
 
 		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "00409" {

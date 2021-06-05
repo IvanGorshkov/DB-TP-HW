@@ -2,6 +2,8 @@ package delivery
 
 import (
 	"encoding/json"
+	"github.com/mailru/easyjson"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -86,8 +88,9 @@ func (th *ThreadsHandler) ViewPosts(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 	}
+	var posts models.Posts
 
-	res, err2 := th.threadsUsecase.ViewPosts(vars["slug_or_id"], sort, desc, since, limit)
+	posts, err2 := th.threadsUsecase.ViewPosts(vars["slug_or_id"], sort, desc, since, limit)
 
 	if  err2 != nil {
 		if  err2.ErrorCode == errors.InternalError {
@@ -108,9 +111,10 @@ func (th *ThreadsHandler) ViewPosts(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(res)
-	if err != nil {
 
+	_, err = easyjson.MarshalToWriter(posts, w)
+
+	if err != nil {
 		return
 	}
 }
@@ -186,13 +190,16 @@ func (th *ThreadsHandler) Vote(w http.ResponseWriter, r *http.Request) {
 
 func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
 
-	posts := make([]*models.Post, 0)
-	err := json.NewDecoder(r.Body).Decode(&posts)
+	body, _ := ioutil.ReadAll(r.Body)
+
+	var posts models.Posts
+	err := easyjson.Unmarshal(body, &posts)
+
 	if err != nil {
 		return
 	}
 	vars := mux.Vars(r)
-	res, err2 := th.threadsUsecase.CreatePost(posts, vars["slug"])
+	posts, err2 := th.threadsUsecase.CreatePost(posts, vars["slug"])
 
 	if err2 != nil {
 		if  err2.ErrorCode == errors.InternalError {
@@ -213,7 +220,7 @@ func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
 		if err2.ErrorCode == errors.ConflictError {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
-			err = json.NewEncoder(w).Encode(res)
+			_, err = easyjson.MarshalToWriter(posts, w)
 			if err != nil {
 
 				return
@@ -224,8 +231,7 @@ func (th *ThreadsHandler) postsCreate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-
-	err = json.NewEncoder(w).Encode(res)
+	_, err = easyjson.MarshalToWriter(posts, w)
 	if err != nil {
 
 		return
