@@ -58,18 +58,10 @@ func(ur *UserRepository) Create(user *models.User) ([]*models.User, error) {
 		return users, errors.New("409")
 	}
 
-	query := tx.QueryRow(`
-		INSERT INTO users (nickname, fullname, email, about) VALUES ($1, $2, $3, $4) returning id
+	_,_ = tx.Exec(`
+		INSERT INTO users (nickname, fullname, email, about) VALUES ($1, $2, $3, $4)
 	`, user.Nickname, user.Fullname, user.Email, user.About)
 
-	id := 0
-	err = query.Scan(&id)
-	if err != nil {
-		rollbackErr := tx.Rollback()
-		if rollbackErr != nil {
-			return nil, rollbackErr
-		}
-	}
 
 	err = tx.Commit()
 	if err != nil {

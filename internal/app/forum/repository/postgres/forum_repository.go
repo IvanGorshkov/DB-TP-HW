@@ -57,8 +57,6 @@ func(fr *ForumRepository) GetUserByParams(forumSlug, since, desc string, limit i
             }
 			users = append(users, user)
     }
-
-
     return users, nil
 }
 
@@ -126,11 +124,11 @@ func(fr *ForumRepository) ThreadCreate(thread *models.Thread) (*models.Thread, e
     if thread.Created == "" {
         err = tx.QueryRow(`
             INSERT INTO thread (title, author, forum, message, slug) VALUES ($1, $2, (SELECT slug from forum where slug = $3), $4, $5) returning id, forum
-        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Slug).Scan(&thread.Id, &thread.Forum) 
+        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Slug).Scan(&thread.Id, &thread.Forum)
     } else {
         err = tx.QueryRow(`
             INSERT INTO thread (title, author, forum, message, created, slug) VALUES ($1, $2, (SELECT slug from forum where slug = $3), $4, $5, $6) returning id, forum
-        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Created, thread.Slug).Scan(&thread.Id, &thread.Forum) 
+        `, thread.Title, thread.Author, thread.Forum, thread.Message, thread.Created, thread.Slug).Scan(&thread.Id, &thread.Forum)
     }
 
     if err != nil {
@@ -188,12 +186,10 @@ func(fr *ForumRepository) Create(forum *models.Forum) (*models.Forum, error){
         return nil, err
     }
 
-    query := tx.QueryRow(`
-        INSERT INTO forum (title, nickname, slug) VALUES ($1, $2, $3) returning id
+    _, err = tx.Exec(`
+        INSERT INTO forum (title, nickname, slug) VALUES ($1, $2, $3)
     `, forum.Title, forum.User, forum.Slug)
 
-    id := 0
-    err = query.Scan(&id)
     if err != nil {
         rollbackErr := tx.Rollback()
         if rollbackErr != nil {

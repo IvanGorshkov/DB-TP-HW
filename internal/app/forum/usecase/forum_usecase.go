@@ -63,7 +63,7 @@ func(fu *FourmUsecase) CreateThread(thread *models.Thread) (*models.Thread, *err
 			return res, errors.NotFoundBody("Can't find thread forum by slug " + thread.Forum + "\n")
 		}
 
-		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "23505" {
+		if pgErr, ok := err.(pgx.PgError); ok && pgErr.Code == "21212" {
 			thr, _ := fu.thredRepo.ThreadBySlug(thread.Slug)
 
 			return thr, errors.CustomErrors[errors.ConflictError]
