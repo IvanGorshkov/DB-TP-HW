@@ -138,7 +138,7 @@ func FormQueryParentTreeSort(limit, threadID int, sort, since string, desc bool)
 }
 
 
-func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) ([]*models.Post, error) {
+func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) ([]models.Post, error) {
 	postID, _ := strconv.Atoi(since)
 	var desc_b bool
 	if desc == "true" {
@@ -180,10 +180,10 @@ func (tr *ThreadsRepository) ViewPosts(sort, desc, since string, limit, id int) 
 		return nil, err
 	}
 	defer rows.Close()
-	posts := make([]*models.Post, 0)
+	posts := make([]models.Post, 0)
 	var parent sql.NullInt64
 	for rows.Next() {
-		post := &models.Post{}
+		post := models.Post{}
 
 		var created time.Time
 		err = rows.Scan(&post.ID, &parent, &post.Author, &post.Message,
@@ -263,9 +263,9 @@ func (tr *ThreadsRepository) ThreadBySlug(slug string) (*models.Thread, error) {
 }
 
 
-func (tr *ThreadsRepository) CreatePost(posts []*models.Post) ([]*models.Post, error) {
+func (tr *ThreadsRepository) CreatePost(posts []models.Post) ([]models.Post, error) {
 	query := `INSERT INTO posts(parent, author, forum, message, thread) VALUES `
-	var posts2 []*models.Post
+	var posts2 []models.Post
 	posts2 = append(posts2, posts...)
 	var values []interface{}
 	for i, post := range posts2 {

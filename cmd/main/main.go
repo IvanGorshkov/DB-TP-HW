@@ -57,7 +57,7 @@ func main() {
 
 	
 	postRepo := postRepo.NewPostRepository(postgresDB.GetDatabase())
-	postUsecase := postUsecase.NewThreadsUsecase(postRepo, userRepo, forumRepo, threadRepo)
+	postUsecase := postUsecase.NewThreadsUsecase(postRepo)
 	postHandler := postHandler.NewThreadsHandler(postUsecase)
 
 
